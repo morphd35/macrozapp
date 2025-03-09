@@ -1,0 +1,11 @@
+// backend/jsconfig.json
+{
+    "compilerOptions": {
+        "target": "es6",
+        "module": "commonjs",
+        "checkJs": false
+    },
+    "exclude": [
+        "node_modules"
+    ]
+}

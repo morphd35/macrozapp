@@ -1,0 +1,1434 @@
+/* App.css */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&family=Inter:wght@400;500&display=swap');
+
+body {
+  font-family: 'Poppins', sans-serif;
+  background: linear-gradient(to bottom, #38bdf8 0%, #34d399 50%, #1e40af 100%);
+  color: #2d3748;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+.app-container {
+  max-width: flex;
+  margin: 0 auto;
+  padding: 10px;
+}
+
+/* 
+/* Navigation bar styling */
+.nav-bar {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 10px 10px;
+  border-radius: 8px;
+  width: 90%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: center;
+  margin-left: auto;
+  /* Center it like cards */
+  margin-right: auto;
+  /* Center it like cards */
+}
+
+*/ .nav-link {
+  color: #2b6cb0;
+  font-weight: 600;
+  text-decoration: none !important;
+  font-size: 1.1rem;
+  transition: color 0.3s ease;
+  width: 90%;
+  margin-left: auto;
+  /* Center it like cards */
+  margin-right: auto;
+  /* Center it like cards */
+}
+
+.nav-link:hover {
+  color: #1e40af;
+}
+
+.nav-links .nav-button.active {
+  background-color: #16a085;
+  /* Darker teal for active state */
+  color: white;
+  /* Ensure text remains white */
+  text-overflow: ellipsis;
+}
+
+
+h1 {
+  color: #ffffff;
+  text-align: center;
+  font-size: 2.5rem;
+  font-weight: 600;
+  margin-bottom: 20px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+h2 {
+  color: #4a5568;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-grid>label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 0;
+}
+
+.form-grid>div {
+  display: flex;
+  align-items: flex-end;
+}
+
+.form-grid input,
+.form-grid select,
+.form-grid button {
+  height: 40px;
+  box-sizing: border-box;
+  margin: 5px;
+  padding: 0 12px;
+  line-height: 1;
+  width: auto;
+}
+
+/* New styles for form wrapper and card */
+.form-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: rgba(255, 255, 255, 0.2);
+  /* Reduced opacity to let gradient show through */
+}
+
+.form-card {
+  max-width: 400px;
+  width: 90%;
+  padding: 20px;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: center;
+}
+
+.form-card label {
+  display: block;
+  text-align: left;
+  margin: 10px 0 5px;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
+/* Specific styling for checkbox labels */
+.form-card label.checkbox-label {
+  display: flex;
+  /* Use flex to align items horizontally */
+  align-items: center;
+  /* Vertically center the checkbox and text */
+  margin: 5px 0;
+  /* Reduce margin for better spacing */
+}
+
+.form-card label.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  /* Remove default margin on checkbox */
+  margin-right: 8px;
+  /* Add space between checkbox and text */
+}
+
+.form-card label.checkbox-label span {
+  margin: 0;
+  /* Ensure no extra margin on the text */
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .form-card label.checkbox-label {
+    margin: 3px 0;
+    /* Slightly reduce margin on mobile */
+  }
+
+  .form-card label.checkbox-label input[type="checkbox"] {
+    margin-right: 5px;
+    /* Slightly reduce space on mobile */
+  }
+}
+
+/* Specific styling for checkbox container */
+.form-card .checkbox-container {
+  display: flex !important;
+  /* Ensure flex applies */
+  align-items: center !important;
+  /* Vertically center items */
+  margin: 5px 0;
+}
+
+/* Ensure text and checkbox are aligned */
+.form-card .checkbox-container span {
+  margin-right: 8px;
+  display: inline-block;
+  /* Ensure span doesn’t cause line break */
+}
+
+/* Ensure checkbox has no extra margins causing breaks */
+.form-card .checkbox-container input[type="checkbox"] {
+  margin: 0;
+  display: inline-block;
+  /* Ensure inline with text */
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .form-card .checkbox-container {
+    margin: 3px 0;
+  }
+
+  .form-card .checkbox-container span {
+    margin-right: 5px;
+  }
+}
+
+/* In frontend/src/App.css */
+.form-card div.checkbox-container {
+  display: flex !important;
+  flex-direction: row !important;
+  /* Explicitly enforce row direction */
+  align-items: center !important;
+  margin: 5px 0;
+}
+
+.form-card div.checkbox-container span {
+  margin-right: 8px;
+  display: inline-block;
+}
+
+.form-card div.checkbox-container input[type="checkbox"] {
+  margin: 0;
+  display: inline-block;
+}
+
+.form-card input {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 1rem;
+}
+
+/* Custom eye icon styling */
+.form-card .password-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  font-size: 1.2rem;
+  color: #2d3748;
+}
+
+/* Responsive Adjustments for Form */
+@media (max-width: 480px) {
+  .form-card {
+    padding: 15px;
+  }
+
+  .form-card h2 {
+    font-size: 1.5rem;
+  }
+
+  .form-card label {
+    font-size: 0.9rem;
+  }
+
+  .form-card input {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 480px) {
+  .form-card div.checkbox-container {
+    margin: 3px 0;
+  }
+
+  .form-card div.checkbox-container span {
+    margin-right: 2px;
+    /* Further reduce on mobile */
+  }
+}
+
+.input-with-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.input-with-icon input,
+.input-with-icon select {
+  padding-left: 36px;
+  width: 100%;
+}
+
+.input-with-icon .icon {
+  position: absolute;
+  left: 10px;
+  color: #4a5568;
+  font-size: 1.2rem;
+}
+
+.button-with-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 30px;
+  padding: 0 8px;
+}
+
+.button-with-icon .icon {
+  font-size: 1.2rem;
+}
+
+input,
+select {
+  font-family: 'Inter', sans-serif;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 1rem;
+  background-color: #f7fafc;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input:focus,
+select:focus {
+  border-color: #2b6cb0;
+  box-shadow: 0 0 0 3px rgba(43, 108, 176, 0.1);
+  outline: none;
+}
+
+button {
+  background-color: #ed8936;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  width: auto;
+  /* Allow width to adjust to content */
+  min-width: 150px;
+  /* Minimum width to fit longer text like "Request Reset Link" */
+  padding: 10px 20px;
+  /* Increased padding for better text fit */
+  white-space: nowrap;
+  /* Prevent text wrapping */
+  overflow: hidden;
+  /* Hide overflow without scrollbar */
+  text-overflow: ellipsis;
+  /* Optional: add ellipsis if text is too long */
+  box-sizing: border-box;
+}
+
+button:hover {
+  background-color: #dd6b20;
+  transform: translateY(-1px);
+}
+
+button:active {
+  transform: translateY(0);
+
+}
+
+/* Responsive Adjustments for Buttons */
+@media (max-width: 480px) {
+  button {
+    padding: 8px 15px;
+    /* Slightly smaller padding on mobile */
+    font-size: 0.9rem;
+    /* Smaller text on mobile */
+    min-width: 120px;
+    /* Slightly smaller minimum width on mobile */
+  }
+}
+
+.button-with-icon:active {
+  color: #dd6b20;
+}
+
+
+/* Button for Add New Food */
+.button-with-icon {
+  padding: 8px 16px;
+  background-color: #14b8a6;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 5px;
+}
+
+.button-with-icon:hover {
+  background-color: #0f9b8c;
+}
+
+.card {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+  transition: transform 0.2s ease;
+  width: 75%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+}
+
+.card p {
+  margin: 5px 0;
+  font-size: 1rem;
+  color: #4a5568;
+}
+
+/* Modal styling */
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+}
+
+/* Existing .modal styles (modify these) */
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 6px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  animation: slideIn 0.3s ease-out;
+  width: 90%;
+  /* Ensure full width on mobile */
+  max-width: 300px;
+  /* Smaller default for mobile */
+  max-height: 80vh;
+  /* Limit height to viewport height */
+  overflow-y: auto;
+  /* Enable vertical scrolling if content overflows */
+}
+
+/* Existing tablet media query (modify max-width and add height adjustment) */
+@media (min-width: 768px) {
+  .modal {
+    max-width: 400px;
+    /* Increase width for tablets */
+    max-height: 90vh;
+    /* Allow more height on tablets */
+    padding: 25px;
+    /* Slightly more padding for better spacing */
+  }
+}
+
+/* Ensure form content adjusts */
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+/* Adjust labels and inputs for better fit */
+.modal label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 14px;
+  color: #555;
+}
+
+.modal input,
+.modal select {
+  width: 100%;
+  /* Ensure inputs take full available space */
+  box-sizing: border-box;
+  /* Include padding in width calculation */
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+/* Adjust button container if needed */
+.modal .form-grid>div {
+  flex-direction: column;
+  /* Stack buttons vertically on smaller screens */
+  gap: 10px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .modal .form-grid>div {
+    flex-direction: row;
+    /* Restore horizontal layout on tablets */
+    gap: 15px;
+  }
+}
+
+.modal form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal label {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  /* Full width */
+  color: #4a5568;
+}
+
+.modal input {
+  margin-top: 5px;
+  font-family: 'Inter', sans-serif;
+}
+
+.modal button {
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+  width: auto;
+}
+
+.modal button[type="submit"] {
+  background-color: #1abc9c;
+  color: white;
+}
+
+.modal button[type="submit"]:hover {
+  background-color: #16a085;
+}
+
+.modal button[type="button"] {
+  background-color: #95a5a6;
+  color: white;
+}
+
+.modal button[type="button"]:hover {
+  background-color: #7f8c8d;
+}
+
+.modal input,
+.modal select {
+  width: 100%;
+  /* Ensure inputs take full available space */
+  box-sizing: border-box;
+  /* Include padding in width calculation */
+}
+
+/* Adjust button container if needed */
+.modal .form-grid>div {
+  flex-direction: column;
+  /* Stack buttons vertically on smaller screens */
+  gap: 10px;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .modal .form-grid>div {
+    flex-direction: row;
+    /* Restore horizontal layout on tablets */
+    gap: 15px;
+  }
+}
+
+/* Existing mobile styles */
+.modal .form-grid>div {
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  align-items: stretch;
+  /* Ensure buttons stretch to fit content */
+}
+
+/* Ensure buttons have enough width to display text */
+.modal .form-grid>div .button-with-icon {
+  width: 100%;
+  /* Full width on mobile */
+  min-width: 120px;
+  /* Minimum width to prevent text cutoff */
+  padding: 8px 10px;
+  /* Adjust padding for better fit */
+  white-space: nowrap;
+  /* Prevent text wrapping */
+}
+
+/* Tablet breakpoint */
+@media (min-width: 768px) {
+  .modal .form-grid>div {
+    flex-direction: row;
+    gap: 15px;
+    align-items: center;
+  }
+
+  .modal .form-grid>div .button-with-icon {
+    width: auto;
+    /* Allow button to size based on content */
+    min-width: 150px;
+    /* Slightly larger for tablet */
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translate(-50%, -60%);
+    opacity: 0;
+  }
+
+  to {
+    transform: translate(-50%, -50%);
+    opacity: 1;
+  }
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  padding: 5px 0;
+  font-size: 1rem;
+  color: #4a5568;
+}
+
+.prompt {
+  text-align: center;
+  color: #4a5568;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+/* Progress Bar Styles */
+.progress-item {
+  flex-direction: column;
+  /* Stack label and progress bar on mobile */
+  align-items: flex-start;
+  gap: 5px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 10px;
+  background-color: #e2e8f0;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.progress-fill.safe {
+  background-color: #14b8a6;
+}
+
+.progress-fill.warning {
+  background-color: #f97316;
+}
+
+.progress-fill.over {
+  background-color: #ef4444;
+}
+
+.progress-fill.success {
+  background: #4caf50;
+  /* Green for reaching/exceeding */
+}
+
+.progress-fill.under {
+  background: #2196f3;
+  /* Blue for under goal */
+}
+
+@media (min-width: 768px) {
+  .progress-item {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+  }
+}
+
+/* Goals Form Styles */
+.goals-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 20px;
+  margin-bottom: 20px;
+}
+
+.goal-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f9f9f9;
+  border-radius: 5px;
+  padding: 10px 15px;
+  margin: 10px 0;
+  transition: background 0.2s;
+}
+
+.goal-item:hover {
+  background: #f1f1f1;
+}
+
+/* Goal text */
+.goal-text {
+  font-size: 16px;
+  color: #333;
+}
+
+/* Goal actions (buttons) */
+.goal-actions {
+  display: flex;
+  gap: 5px;
+}
+
+.edit-btn {
+  background-color: #0dd3b8;
+  /* Orange for Edit */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.edit-btn:hover {
+  background-color: #189c86;
+}
+
+.delete-btn {
+  background-color: #e74c3c;
+  /* Red for Delete */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.delete-btn:hover {
+  background-color: #c0392b;
+}
+
+/* Weight List Styles */
+.weight-list {
+  list-style: none;
+  padding: 0;
+}
+
+.weight-list li {
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.weight-list li:last-child {
+  border-bottom: none;
+}
+
+/* Category modal specific styling */
+.category-modal-content {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  /* Consistent spacing between elements */
+}
+
+/* New category input and button section */
+.category-modal-content .new-category-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  /* Space between input and button */
+}
+
+.category-modal-content .new-category-section input {
+  flex: 1;
+  /* Take up remaining space */
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+/* Add Category button */
+.category-modal-content .new-category-section button {
+  background-color: #1abc9c;
+  /* Same teal as Add Food */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.category-modal-content .new-category-section button:hover {
+  background-color: #16a085;
+}
+
+/* Category list styling */
+.category-modal-content ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.category-modal-content ul li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Space out category name and buttons */
+  padding: 8px 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.category-modal-content ul li:last-child {
+  border-bottom: none;
+}
+
+/* Edit/Delete buttons in category list */
+.category-modal-content ul li .category-actions {
+  display: flex;
+  gap: 5px;
+  /* Space between Edit and Delete */
+}
+
+.category-modal-content ul li .category-actions button.edit-btn {
+  background-color: #f39c12;
+  /* Orange for Edit */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.category-modal-content ul li .category-actions button.edit-btn:hover {
+  background-color: #e67e22;
+}
+
+.category-modal-content ul li .category-actions button.delete-btn {
+  background-color: #e74c3c;
+  /* Red for Delete */
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.category-modal-content ul li .category-actions button.delete-btn:hover {
+  background-color: #c0392b;
+}
+
+/* Inline editing input for category */
+.category-modal-content ul li input {
+  padding: 5px;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+  margin-right: 10px;
+}
+
+/* Save button during inline editing */
+.category-modal-content ul li button.save-btn {
+  background-color: #1abc9c;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.category-modal-content ul li button.save-btn:hover {
+  background-color: #16a085;
+}
+
+/* Close button for the modal */
+.category-modal-content .close-btn {
+  background-color: #95a5a6;
+  /* Same gray as Cancel buttons */
+  color: white;
+  border: none;
+  padding: 8px 15px;
+  border-radius: 3px;
+  cursor: pointer;
+  align-self: flex-end;
+  /* Align to the right */
+}
+
+.category-modal-content .close-btn:hover {
+  background-color: #7f8c8d;
+}
+
+/* Enhance and offset the category modal when nested */
+.modal-backdrop+.modal {
+  box-shadow: 0 40px 50px rgba(0, 0, 0, 0.8);
+  /* Increased shadow for depth */
+  border: 1px solid #14b8a6;
+  /* Subtle teal border to match theme */
+  background-color: #f9fbfc;
+  /* Slight background tint for distinction */
+  z-index: 1002;
+  /* Ensure it’s above the parent modal */
+
+}
+
+/* Darken the backdrop for the category modal */
+.modal-backdrop+.modal-backdrop {
+  background-color: rgba(0, 0, 0, 0.7);
+  /* Darker backdrop */
+  z-index: 1001;
+  /* Ensure it’s above the parent modal but below the category modal */
+}
+
+/* Generic table styling for logged food details */
+.log-table {
+  margin-top: 10px;
+  overflow-x: auto;
+  /* Handle horizontal overflow */
+}
+
+.log-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  padding: 12px;
+  background-color: #f7fafc;
+  font-weight: bold;
+  color: #2d3748;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.log-table-header span,
+.log-table-row span {
+  padding: 4px 4px;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.log-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+}
+
+.log-table-row:last-child {
+  border-bottom: none;
+}
+
+/* Enhance food table row with expandability cue */
+.food-table-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 0.5fr;
+  /* Added column for expand icon */
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  /* Smooth hover effect */
+}
+
+.food-table-row:hover {
+  background-color: #f0f4f8;
+  /* Light hover effect */
+}
+
+.food-table-row span:last-child {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.food-table-row span:last-child::after {
+  content: '▶';
+  /* Right arrow as expand cue */
+  font-size: 1rem;
+  color: #2c3e50;
+  transition: transform 0.2s;
+  /* Rotate on click */
+}
+
+.food-table-row.expanded span:last-child::after {
+  transform: rotate(90deg);
+  /* Down arrow when expanded */
+}
+
+/* Ensure consistency with log-table */
+.food-table-header {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 0.5fr;
+  /* Added column for expand icon */
+  padding: 12px;
+  background-color: #f7fafc;
+  font-weight: bold;
+  color: #2d3748;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.food-table-header span:last-child {
+  content: '';
+  /* Empty column for expand icon header */
+}
+
+.food-table,
+.log-table {
+  overflow-x: auto;
+  /* Horizontal scroll on mobile */
+}
+
+.food-table-row,
+.log-table-row {
+  grid-template-columns: repeat(9, auto);
+  /* Ensure columns adjust */
+}
+
+@media (min-width: 768px) {
+
+  .food-table-row,
+  .log-table-row {
+    grid-template-columns: 2fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 0.5fr;
+    /* Restore original layout */
+  }
+}
+
+/* Mobile-first base styles (up to 767px) */
+.app-container {
+  padding: 10px;
+  /* Reduced padding for smaller screens */
+  max-width: 100%;
+  /* Full width on mobile */
+}
+
+.nav-links {
+  padding: 5px 10px;
+  /* Reduced padding for mobile */
+}
+
+.nav-links ul {
+  flex-direction: row;
+  /* Stack vertically on mobile */
+  align-items: center;
+}
+
+.nav-links ul li {
+  margin: 5px 0;
+  /* Vertical spacing on mobile */
+}
+
+.nav-links .nav-button {
+  width: 65%;
+  /* Full width buttons on mobile */
+  justify-content: center;
+  padding: 10px;
+  text-overflow: ellipsis;
+}
+
+.card {
+  width: 90%;
+  /* Full width on mobile */
+  margin-left: 0;
+  margin-right: 0;
+}
+
+.form-grid {
+  grid-template-columns: 1fr;
+  /* Single column on mobile */
+  gap: 10px;
+}
+
+.form-grid>div {
+  flex-direction: column;
+  gap: 10px;
+}
+
+.modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  z-index: 1001;
+  width: 400px;
+  max-width: 90%;
+}
+
+/* Tablet (768px to 1023px) */
+@media (min-width: 768px) {
+  .app-container {
+    max-width: 800px;
+    /* Wider container for tablets */
+    padding: 15px;
+  }
+
+  .nav-links ul {
+    flex-direction: row;
+    /* Horizontal navigation on tablets */
+    justify-content: center;
+  }
+
+  .nav-links ul li {
+    margin: 0 10px;
+    /* Horizontal spacing */
+  }
+
+  .nav-links .nav-button {
+    width: auto;
+    /* Reset to auto width */
+    padding: 8px 16px;
+    text-overflow: ellipsis;
+  }
+
+  .card {
+    width: 75%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .form-grid {
+    grid-template-columns: 2fr 1fr;
+    /* Restore two-column layout */
+  }
+
+  .form-grid>div {
+    flex-direction: row;
+    gap: 15px;
+  }
+
+  .modal {
+    max-width: 400px;
+    /* Larger modal on tablets */
+  }
+}
+
+/* Desktop (1024px and above) */
+@media (min-width: 1024px) {
+  .app-container {
+    max-width: 1200px;
+    /* Full desktop width */
+    padding: 20px;
+  }
+
+  .card {
+    width: 75%;
+    /* Restore original width */
+  }
+
+  .modal {
+    max-width: 500px;
+    /* Full-size modal on desktop */
+  }
+}
+
+/* Responsive adjustments for mobile (below 745px) */
+@media (max-width: 745px) {
+  .nav-bar {
+    flex-direction: row;
+    /* Stack buttons vertically */
+    align-items: center;
+    padding: 5px;
+    width: 100%;
+    /* Full width on mobile */
+    border-radius: 0;
+    /* Remove border radius on mobile */
+  }
+
+  .nav-bar button {
+    padding: 6px 12px;
+    /* Smaller padding on mobile */
+    font-size: 0.8rem;
+    /* Smaller text on mobile */
+    width: 70%;
+    /* Full width buttons on mobile */
+    margin: 5px 0;
+    /* Vertical spacing between buttons */
+    text-overflow: ellipsis;
+  }
+}
+
+/* Tablet (768px to 1023px) */
+@media (min-width: 746px) and (max-width: 1023px) {
+  .nav-bar {
+    width: 85%;
+    /* Slightly narrower on tablets */
+  }
+
+  .nav-bar button {
+    padding: 8px 14px;
+    font-size: 1rem;
+  }
+}
+
+/* Desktop (1024px and above) */
+@media (min-width: 1024px) {
+  .nav-bar {
+    width: 76%;
+    /* Original desktop width */
+  }
+
+  .nav-bar button {
+    padding: 8px 16px;
+    font-size: 1.1rem;
+  }
+}
+
+/* Ensure all cards are fully contained */
+.card {
+  overflow-x: auto;
+  /* Enable horizontal scrolling for overflowing content */
+  box-sizing: border-box;
+  /* Include padding in width calculation */
+}
+
+/* Generic container for tables within cards */
+.card .table-container {
+  overflow-x: auto;
+  width: 100%;
+  max-width: 100%;
+  /* Ensure it stays within the card */
+  position: relative;
+  /* Establish stacking context */
+  z-index: 1;
+  /* Lower z-index than sticky columns */
+}
+
+/* Generic table styling for any table within a card */
+.card .data-table {
+  display: table;
+  width: 100%;
+  border-collapse: collapse;
+}
+
+/* Generic table header */
+.card .data-table-header {
+  display: table-row;
+  background-color: #f7fafc;
+  font-weight: bold;
+  color: #2d3748;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+/* Generic table row */
+.card .data-table-row {
+  display: table-row;
+  padding: 12px;
+  border-bottom: 1px solid #e2e8f0;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+/* Hover effect for table rows */
+.card .data-table-row:hover {
+  background-color: #f0f4f8;
+}
+
+/* Expanded row styling */
+.card .data-table-row.expanded {
+  background-color: #e8f0fe;
+}
+
+/* Generic header and data cells */
+.card .header-cell,
+.card .data-cell {
+  display: table-cell;
+  padding: 10px 12px;
+  text-align: center;
+  border-bottom: 1px solid #ddd;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 80px;
+  max-width: 120px;
+  font-size: 1em;
+}
+
+/* Specific styling for date column */
+.card .date-column {
+  min-width: 100px !important;
+  max-width: 100px !important;
+}
+
+/* Specific styling for food name column */
+.card .food-name-column {
+  min-width: 150px !important;
+  max-width: 200px !important;
+  white-space: normal;
+  text-align: left;
+  background-color: #f7fafc !important;
+  /* Force solid background to cover underlying data */
+  z-index: 3;
+  /* Higher z-index to stay on top */
+  box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.2);
+  /* Stronger shadow for separation */
+}
+
+/* Style for the unit (e.g., (mg), (g)) */
+.card .unit {
+  font-size: 0.8em;
+  color: #666;
+  margin-left: 2px;
+}
+
+/* Style for the expand column (last column) */
+.card .expand-column {
+  min-width: 30px !important;
+  max-width: 30px !important;
+}
+
+/* Sticky columns for better usability */
+.card .sticky {
+  position: sticky;
+  left: 0;
+  background-color: #f7fafc !important;
+  /* Force solid background */
+  z-index: 3;
+  /* Higher z-index to stay above scrolling content */
+  box-shadow: 2px 0 5px -2px rgba(0, 0, 0, 0.2);
+  /* Stronger shadow for separation */
+}
+
+/* Toggle button for showing more macros */
+.card .toggle-macros-btn {
+  margin-bottom: 10px;
+  padding: 8px 16px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.card .toggle-macros-btn:hover {
+  background-color: #0056b3;
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .card .table-container {
+    overflow-x: auto;
+  }
+
+  .card .data-table {
+    display: block;
+    width: 100%;
+  }
+
+  .card .data-table-header,
+  .card .data-table-row {
+    display: block;
+  }
+
+  .card .header-cell,
+  .card .data-cell {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px;
+    text-align: left;
+    font-size: 1.1em;
+    /* Increase font size for readability */
+    border-bottom: 1px solid #ddd;
+    min-width: unset;
+    max-width: unset;
+    white-space: normal;
+  }
+
+  /* Style the first cell (e.g., Date or Food Name) differently */
+  .card .header-cell:first-child,
+  .card .data-cell:first-child {
+    font-weight: bold;
+    background-color: #f0f0f0;
+    position: sticky;
+    left: 0;
+    z-index: 1;
+  }
+
+  .card .data-table-row .data-cell:first-child {
+    background-color: #e0e0e0;
+  }
+
+  /* Hide the expand column on mobile */
+  .card .expand-column {
+    display: none;
+  }
+
+  /* Add a label before each data cell to indicate the column */
+  .card .data-table-row .data-cell:not(:first-child)::before {
+    content: attr(data-label) ": ";
+    font-weight: bold;
+    display: inline-block;
+    width: 50%;
+    text-align: right;
+    padding-right: 10px;
+  }
+
+  .card .data-table-row .data-cell:not(:first-child) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Remove sticky positioning on mobile for simplicity */
+  .card .sticky {
+    position: static;
+  }
+
+  /* Adjust specific columns on mobile */
+  .card .date-column,
+  .card .food-name-column {
+    min-width: unset !important;
+    max-width: unset !important;
+  }
+}

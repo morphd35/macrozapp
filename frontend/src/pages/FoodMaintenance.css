@@ -1,0 +1,406 @@
+/* FoodMaintenance.css */
+.food-maintenance {
+    padding: 10px;
+    position: relative;
+}
+
+.card-food-maintenance {
+    background-color: white;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    border-left: 1px solid #14b8a6;
+    width: 95%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 1200px;
+    overflow-y: auto;
+}
+
+.food-maintenance .filter-section {
+    display: block;
+    margin-bottom: 15px;
+}
+
+.food-maintenance .filter-section label {
+    margin-right: 10px;
+    color: #2c3e50;
+}
+
+.food-maintenance .filter-section select {
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    width: 150px;
+}
+
+.food-maintenance .food-table {
+    margin-top: 10px;
+    overflow-x: auto;
+}
+
+.food-maintenance .food-table-header,
+.food-maintenance .food-table-row {
+    display: grid;
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    cursor: pointer;
+}
+
+.food-maintenance .food-table-header {
+    background-color: #f7fafc;
+    font-weight: bold;
+    color: #2d3748;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.food-maintenance .food-table-row:last-child {
+    border-bottom: none;
+}
+
+.food-maintenance .food-table-header span,
+.food-maintenance .food-table-row span {
+    padding: 4px 4px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.food-maintenance .food-table-row span:last-child {
+    min-width: 100px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+}
+
+/* Icon styling */
+.food-maintenance .edit-icon,
+.food-maintenance .delete-icon,
+.food-maintenance .expand-icon {
+    font-size: 1.2rem;
+    transition: color 0.3s;
+}
+
+.food-maintenance .edit-icon:hover {
+    color: #e67e22;
+}
+
+.food-maintenance .delete-icon:hover {
+    color: #c0392b;
+}
+
+.food-maintenance .expand-icon:hover {
+    color: #2c3e50;
+}
+
+.food-maintenance .search-section {
+    margin-bottom: 10px;
+}
+
+.food-maintenance .search-box {
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    width: 200px;
+}
+
+/* Delete confirmation modal */
+.food-maintenance .modal {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    width: 90%;
+    max-width: 400px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 1000;
+}
+
+.food-maintenance .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+}
+
+.food-maintenance .modal h3 {
+    margin-bottom: 15px;
+}
+
+.food-maintenance .modal p {
+    margin-bottom: 20px;
+}
+
+.food-maintenance .modal .delete-btn {
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-right: 10px;
+}
+
+.food-maintenance .modal .delete-btn:hover {
+    background-color: #c0392b;
+}
+
+.food-maintenance .modal .cancel-btn {
+    background-color: #6b7280;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.food-maintenance .modal .cancel-btn:hover {
+    background-color: #4b5563;
+}
+
+/* Mobile-first adjustments (up to 767px) */
+.food-maintenance {
+    padding: 5px;
+}
+
+.card-food-maintenance {
+    width: 100%;
+    margin-left: 0;
+    margin-right: 0;
+    padding: 8px;
+    overflow-y: auto;
+}
+
+.food-maintenance .filter-section,
+.food-maintenance .search-section {
+    display: none;
+    /* Hidden by default on mobile, shown via hamburger */
+}
+
+.food-maintenance .filter-section label {
+    margin-right: 10px;
+    color: #2c3e50;
+}
+
+.food-maintenance .filter-section select {
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    width: 150px;
+}
+
+.food-maintenance .search-box {
+    padding: 5px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    width: 200px;
+}
+
+.food-maintenance .food-table {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.food-maintenance .food-table-header,
+.food-maintenance .food-table-row {
+    font-size: 0.9rem;
+}
+
+.food-maintenance .food-table-row span:last-child {
+    min-width: 80px;
+    gap: 3px;
+}
+
+.food-maintenance .edit-icon,
+.food-maintenance .delete-icon,
+.food-maintenance .expand-icon {
+    font-size: 1rem;
+}
+
+.food-maintenance .mobile-details {
+    display: none;
+    grid-column: 1 / -1;
+    padding: 10px;
+    background-color: #f9f9f9;
+    border-top: 1px solid #e2e8f0;
+}
+
+.food-maintenance .macro-detail {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    margin-bottom: 5px;
+}
+
+.food-maintenance .macro-detail span:first-child {
+    font-weight: bold;
+    color: #2c3e50;
+}
+
+.food-maintenance .macro-detail span:last-child {
+    color: #4a5568;
+}
+
+/* Hamburger and mobile navigation */
+.food-maintenance .hamburger-menu {
+    display: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #2c3e50;
+    padding: 5px;
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 1001;
+}
+
+.food-maintenance .desktop-nav {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.food-maintenance .desktop-nav button {
+    padding: 8px 16px;
+    background-color: #14b8a6;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.food-maintenance .desktop-nav button:hover {
+    background-color: #0d9488;
+}
+
+.food-maintenance .mobile-nav {
+    display: none;
+}
+
+.food-maintenance .nav-menu {
+    display: none;
+    position: absolute;
+    top: 50px;
+    left: 0;
+    width: 200px;
+    background-color: white;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    padding: 10px;
+}
+
+.food-maintenance .nav-menu.active {
+    display: block;
+}
+
+.food-maintenance .nav-menu ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.food-maintenance .nav-menu li {
+    padding: 10px;
+    color: #2c3e50;
+    cursor: pointer;
+}
+
+.food-maintenance .nav-menu li:hover {
+    background-color: #f7fafc;
+}
+
+@media (max-width: 767px) {
+    .food-maintenance .desktop-nav {
+        display: none;
+    }
+
+    /* .food-maintenance .mobile-nav {
+        display: block;
+    } */
+
+    .food-maintenance .hamburger-menu {
+        display: block;
+    }
+
+    .food-maintenance .filter-section,
+    .food-maintenance .search-section {
+        display: none;
+    }
+
+    .food-maintenance .food-table-row {
+        position: relative;
+    }
+
+    .food-maintenance .food-table-row.expanded .mobile-details {
+        display: grid;
+    }
+}
+
+/* Tablet (768px to 1023px) */
+@media (min-width: 768px) {
+    .food-maintenance {
+        padding: 10px;
+    }
+
+    .card-food-maintenance {
+        width: 95%;
+        padding: 10px;
+    }
+
+    .food-maintenance .filter-section {
+        flex-direction: row;
+        align-items: center;
+        gap: 15px;
+    }
+
+    .food-maintenance .filter-section select {
+        width: 150px;
+    }
+
+    .food-maintenance .search-box {
+        width: 200px;
+    }
+
+    .food-maintenance .food-table-header,
+    .food-maintenance .food-table-row {
+        font-size: 1rem;
+    }
+
+    .food-maintenance .food-table-row span:last-child {
+        min-width: 100px;
+        gap: 5px;
+    }
+
+    .food-maintenance .edit-icon,
+    .food-maintenance .delete-icon,
+    .food-maintenance .expand-icon {
+        font-size: 1.2rem;
+    }
+
+    .food-maintenance .mobile-details {
+        display: none;
+    }
+
+    .food-maintenance .hamburger-menu {
+        display: none;
+    }
+}
+
+/* Desktop (1024px and above) */
+@media (min-width: 1024px) {
+    .card-food-maintenance {
+        max-width: 1200px;
+    }
+}

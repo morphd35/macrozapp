@@ -16,7 +16,7 @@ body {
   padding: 10px;
 }
 
-/* 
+
 /* Navigation bar styling */
 .nav-bar {
   background-color: rgba(255, 255, 255, 0.95);
@@ -34,7 +34,7 @@ body {
   /* Center it like cards */
 }
 
-*/ .nav-link {
+.nav-link {
   color: #2b6cb0;
   font-weight: 600;
   text-decoration: none !important;
@@ -203,7 +203,7 @@ h2 {
   }
 }
 
-/* In frontend/src/App.css */
+/* In frontend src App.css */
 .form-card div.checkbox-container {
   display: flex !important;
   flex-direction: row !important;
@@ -679,7 +679,7 @@ li {
 
 .progress-fill.success {
   background: #4caf50;
-  /* Green for reaching/exceeding */
+  /* Green for reaching exceeding */
 }
 
 .progress-fill.under {
@@ -833,7 +833,7 @@ li {
   border-bottom: none;
 }
 
-/* Edit/Delete buttons in category list */
+/* Edit and Delete buttons in category list */
 .category-modal-content ul li .category-actions {
   display: flex;
   gap: 5px;

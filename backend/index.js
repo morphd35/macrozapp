@@ -3,10 +3,27 @@ const cors = require('cors');
 const knex = require('knex');
 const app = express();
 
+
+const allowedOrigins = [
+    'http://localhost:3000', // Default React port (just in case)
+    'http://localhost:3001', // Your current frontend port
+    'https://macrozapp-cbtd-4y5bc7dck-morphd35s-projects.vercel.app/', // Your production frontend URL (adjust if different)
+];
+
 app.use(cors({
-    origin: 'http://localhost:3001',
+    origin: (origin, callback) => {
+        console.log('CORS check - Origin:', origin); // Debug log
+        if (!origin || allowedOrigins.includes(origin)) {
+            console.log('CORS allowed for:', origin);
+            callback(null, true);
+        } else {
+            console.log('CORS rejected:', origin);
+            callback(new Error('Not allowed by CORS'));
+        }
+    },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'content-type']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true,
 }));
 
 app.use(express.json());

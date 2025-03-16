@@ -128,6 +128,91 @@ router.get('/foods', async (req, res) => {
     }
 });
 
+// Update a food item
+router.put('/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, serving_size, category, macros } = req.body;
+    const parsedId = parseInt(id);
+
+    if (isNaN(parsedId)) {
+        return res.status(400).json({ error: 'Food ID must be a valid integer' });
+    }
+
+    if (!name || !serving_size || !category || !macros || !Array.isArray(macros)) {
+        return res.status(400).json({ error: 'name, serving_size, category, and macros are required' });
+    }
+
+    try {
+        // Update the base food details
+        const [updatedFood] = await db('foods')
+            .where({ id: parsedId })
+            .update({
+                name,
+                serving_size,
+                category,
+            })
+            .returning('*');
+
+        if (!updatedFood) {
+            return res.status(404).json({ error: 'Food not found' });
+        }
+
+        console.log('Updated food:', updatedFood);
+
+        // Delete existing macros for this food
+        await db('food_macros').where('food_id', parsedId).del();
+
+        // Insert updated macros
+        const macroEntries = macros.map(macro => ({
+            food_id: parsedId,
+            macro_name: macro.macro_name.toLowerCase(),
+            value: macro.value,
+            unit: macro.unit,
+        }));
+
+        await db('food_macros').insert(macroEntries);
+
+        console.log('Updated food macros:', macroEntries);
+
+        // Fetch the updated macros to return
+        const updatedMacros = await db('food_macros').where('food_id', parsedId);
+        res.json({ ...updatedFood, macros: updatedMacros });
+    } catch (err) {
+        console.error('Error updating food:', err.message, err.stack);
+        if (err.code === '23505') {
+            res.status(400).json({ error: 'A food with this name already exists' });
+        } else {
+            res.status(500).json({ error: 'Failed to update food' });
+        }
+    }
+});
+
+// Delete a food item
+router.delete('/:id', async (req, res) => {
+    const { id } = req.params;
+    const parsedId = parseInt(id);
+
+    if (isNaN(parsedId)) {
+        return res.status(400).json({ error: 'Food ID must be a valid integer' });
+    }
+
+    try {
+        // Delete associated macros first
+        await db('food_macros').where('food_id', parsedId).del();
+
+        // Delete the food item
+        const deletedCount = await db('foods').where('id', parsedId).del();
+        if (deletedCount === 0) {
+            return res.status(404).json({ error: 'Food not found' });
+        }
+
+        res.status(204).send(); // No content on successful deletion
+    } catch (err) {
+        console.error('Error deleting food:', err.message, err.stack);
+        res.status(500).json({ error: 'Failed to delete food' });
+    }
+});
+
 // Delete a goal
 router.delete('/goals/:user_id/:macro_name', async (req, res) => {
     const { user_id, macro_name } = req.params;

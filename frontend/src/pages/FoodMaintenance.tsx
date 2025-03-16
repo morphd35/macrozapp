@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import axios, { AxiosError } from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import './FoodMaintenance.css';
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -66,9 +67,9 @@ const FoodMaintenance: React.FC = () => {
 
     const fetchFoods = async () => {
         try {
-            const res = await axios.get<Food[]>('http://localhost:4000/api/food_logs/foods');
-            console.log('Fetched foods:', res.data);
-            setFoods(res.data);
+            const response = await axiosInstance.get<Food[]>('/food_logs/foods');
+            console.log('Fetched foods:', response.data);
+            setFoods(response.data);
         } catch (err) {
             console.error('Fetch Foods Error:', err);
             setFoods([]);
@@ -77,9 +78,9 @@ const FoodMaintenance: React.FC = () => {
 
     const fetchCategories = async () => {
         try {
-            const res = await axios.get<Category[]>('http://localhost:4000/api/categories');
-            console.log('Fetched categories:', res.data);
-            setCategories(res.data);
+            const response = await axiosInstance.get<Category[]>('/categories');
+            console.log('Fetched categories:', response.data);
+            setCategories(response.data);
         } catch (err) {
             console.error('Fetch Categories Error:', err);
             setCategories([]);
@@ -91,9 +92,9 @@ const FoodMaintenance: React.FC = () => {
             const token = localStorage.getItem('token');
             if (token) {
                 const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
-                const res = await axios.get<MacroGoal[]>(`http://localhost:4000/api/food_logs/goals/${decoded.id}`);
-                console.log('Fetched goals:', res.data);
-                setGoals(res.data);
+                const response = await axiosInstance.get<MacroGoal[]>(`/food_logs/goals/${decoded.id}`);
+                console.log('Fetched goals:', response.data);
+                setGoals(response.data);
             }
         } catch (err) {
             console.error('Fetch Goals Error:', err);
@@ -104,8 +105,8 @@ const FoodMaintenance: React.FC = () => {
     const addCategory = async () => {
         if (newCategory.trim()) {
             try {
-                const res = await axios.post<Category>('http://localhost:4000/api/categories', { name: newCategory });
-                setCategories(prev => [...prev, res.data]);
+                const response = await axiosInstance.post<Category>('/categories', { name: newCategory });
+                setCategories(prev => [...prev, response.data]);
                 setNewCategory('');
             } catch (err) {
                 const error = err as AxiosError;
@@ -118,8 +119,8 @@ const FoodMaintenance: React.FC = () => {
     const editCategory = async () => {
         if (editingCategory && editingCategory.name.trim()) {
             try {
-                const res = await axios.put<Category>(`http://localhost:4000/api/categories/${editingCategory.id}`, { name: editingCategory.name });
-                setCategories(prev => prev.map(c => c.id === editingCategory.id ? res.data : c));
+                const response = await axiosInstance.put<Category>(`/categories/${editingCategory.id}`, { name: editingCategory.name });
+                setCategories(prev => prev.map(c => c.id === editingCategory.id ? response.data : c));
                 setEditingCategory(null);
             } catch (err) {
                 const error = err as AxiosError;
@@ -131,7 +132,7 @@ const FoodMaintenance: React.FC = () => {
 
     const deleteCategory = async (id: number) => {
         try {
-            await axios.delete(`http://localhost:4000/api/categories/${id}`);
+            const response = await axiosInstance.delete(`/categories/${id}`);
             setCategories(prev => prev.filter(c => c.id !== id));
         } catch (err) {
             const error = err as AxiosError;
@@ -161,9 +162,9 @@ const FoodMaintenance: React.FC = () => {
 
         if (foodData.name && foodData.serving_size && foodData.category) {
             try {
-                const res = await axios.post<Food>('http://localhost:4000/api/food_logs/foods', foodData);
-                console.log('Add Food Response:', res.data);
-                setFoods(prevFoods => [...prevFoods, res.data]);
+                const response = await axiosInstance.post<Food>('/food_logs/foods', foodData);
+                console.log('Add Food Response:', response.data);
+                setFoods(prevFoods => [...prevFoods, response.data]);
                 await fetchFoods();
                 setShowAddModal(false);
             } catch (err) {
@@ -195,8 +196,8 @@ const FoodMaintenance: React.FC = () => {
         };
 
         try {
-            const res = await axios.put<Food>(`http://localhost:4000/api/foods/${editingFood.id}`, updatedFood);
-            setFoods(prevFoods => prevFoods.map(f => (f.id === editingFood.id ? res.data : f)));
+            const response = await axiosInstance.put<Food>(`/foods/${editingFood.id}`, updatedFood);
+            setFoods(prevFoods => prevFoods.map(f => (f.id === editingFood.id ? response.data : f)));
             await fetchFoods();
             setShowEditModal(false);
             setEditingFood(null);
@@ -215,7 +216,7 @@ const FoodMaintenance: React.FC = () => {
     const deleteFood = async () => {
         if (foodToDelete === null) return;
         try {
-            await axios.delete(`http://localhost:4000/api/foods/${foodToDelete}`);
+            const response = await axiosInstance.delete(`/foods/${foodToDelete}`);
             setFoods(prevFoods => prevFoods.filter(f => f.id !== foodToDelete));
             await fetchFoods();
             setShowDeleteModal(false);

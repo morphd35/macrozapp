@@ -19,7 +19,13 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx", // Use the new JSX transform
-    "jsxImportSource": "@emotion/react" // For MUI with Emotion
+    "jsxImportSource": "@emotion/react", // For MUI with Emotion
+    "types": [
+      "node",
+      "jest",
+      "react",
+      "react-dom"
+    ]
   },
   "include": [
     "src"

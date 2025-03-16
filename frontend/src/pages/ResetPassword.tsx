@@ -1,6 +1,7 @@
 // frontend/src/pages/ResetPassword.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { Link } from 'react-router-dom';
 import '../App.css';
 
@@ -13,7 +14,7 @@ const ResetPassword: React.FC = () => {
         e.preventDefault();
         console.log('Submitting reset password request for:', email);
         try {
-            const response = await axios.post('http://localhost:4000/api/reset-password', { email });
+            const response = await axiosInstance.post('/reset-password', { email });
             console.log('Reset password request success:', response.data);
             setMessage('A reset link has been sent to your email.');
             setError('');

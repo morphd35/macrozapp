@@ -1,6 +1,7 @@
 // frontend/src/pages/Login.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
@@ -18,7 +19,7 @@ const Login: React.FC = () => {
         e.preventDefault();
         console.log('Submitting login:', { username, password });
         try {
-            const response = await axios.post('http://localhost:4000/api/login', { username, password });
+            const response = await axiosInstance.post('/login', { username, password });
             console.log('Login success:', response.data);
             const { token } = response.data;
             localStorage.setItem('token', token);

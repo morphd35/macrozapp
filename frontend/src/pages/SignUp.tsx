@@ -1,6 +1,7 @@
 // frontend/src/pages/Signup.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
@@ -20,7 +21,7 @@ const Signup: React.FC = () => {
         e.preventDefault();
         console.log('Submitting signup:', { username, email, password });
         try {
-            const response = await axios.post('http://localhost:4000/api/signup', { username, email, password });
+            const response = await axiosInstance.post('/reset-password', { username, email, password });
             console.log('Signup success:', response.data);
             const { token } = response.data; // Correct variable name
             localStorage.setItem('token', token);

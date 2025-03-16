@@ -1,6 +1,7 @@
 // frontend/src/pages/ResetPasswordConfirm.tsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import axiosInstance from '../utils/axiosConfig';
 import { useSearchParams, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
@@ -30,7 +31,7 @@ const ResetPasswordConfirm: React.FC = () => {
             return;
         }
         try {
-            const response = await axios.post('http://localhost:4000/api/reset-password-confirm', {
+            const response = await axiosInstance.post('/reset-password-confirm', {
                 token,
                 newPassword,
             });

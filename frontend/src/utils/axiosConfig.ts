@@ -1,7 +1,7 @@
 import axios, { InternalAxiosRequestConfig, AxiosError, AxiosResponse } from 'axios';
 
 const axiosInstance = axios.create({
-    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000/api', // Fallback for local if env var is missing
+    baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000', // Fallback for local if env var is missing
     timeout: 10000,
 });
 

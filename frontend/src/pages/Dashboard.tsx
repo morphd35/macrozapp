@@ -94,7 +94,7 @@ const Dashboard: React.FC = () => {
     const fetchDailySummary = useCallback(async () => {
         if (!userId) return;
         try {
-            const url = `/food_logs/${userId}/${logDate}`;
+            const url = `/api/food_logs/${userId}/${logDate}`;
             console.log('Fetching daily summary from:', url);
             const res = await axiosInstance.get<DailySummary>(url);
             console.log('Raw Daily Summary Response:', res.data); // Log the raw response
@@ -110,7 +110,7 @@ const Dashboard: React.FC = () => {
     const fetchGoals = useCallback(async () => {
         if (!userId) return;
         try {
-            const res = await axiosInstance.get<MacroGoal[]>(`/food_logs/goals/${userId}`);
+            const res = await axiosInstance.get<MacroGoal[]>(`/api/food_logs/goals/${userId}`);
             console.log('Goals Response:', res.data);
             setGoals(res.data || []);
             // Initialize customFoodMacros with tracked macros
@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
 
     const fetchFoods = useCallback(async () => {
         try {
-            const res = await axiosInstance.get<Food[]>('/food_logs/foods'); // Updated endpoint
+            const res = await axiosInstance.get<Food[]>('/api/food_logs/foods'); // Updated endpoint
             console.log('Fetched foods:', res.data); // Debug log
             setFoods(res.data);
         } catch (err) {
@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
 
     const fetchCategories = useCallback(async () => {
         try {
-            const res = await axiosInstance.get<Category[]>('/categories');
+            const res = await axiosInstance.get<Category[]>('/api/categories');
             console.log('Fetched categories:', res.data);
             setCategories(res.data);
         } catch (err) {
@@ -160,7 +160,7 @@ const Dashboard: React.FC = () => {
     const addCategory = async () => {
         if (newCategory.trim()) {
             try {
-                const res = await axiosInstance.post<Category>('/categories', { name: newCategory });
+                const res = await axiosInstance.post<Category>('/api/categories', { name: newCategory });
                 setCategories(prev => [...prev, res.data]);
                 setNewCategory('');
             } catch (err) {
@@ -175,7 +175,7 @@ const Dashboard: React.FC = () => {
         if (editingCategory && editingCategory.name.trim()) {
             try {
                 const res = await axiosInstance.put<Category>(
-                    `/categories/${editingCategory.id}`,
+                    `api/categories/${editingCategory.id}`,
                     { name: editingCategory.name }
                 );
                 setCategories(prev => prev.map(c => c.id === editingCategory.id ? res.data : c));
@@ -190,7 +190,7 @@ const Dashboard: React.FC = () => {
 
     const deleteCategory = async (id: number) => {
         try {
-            await axiosInstance.delete(`/categories/${id}`);
+            await axiosInstance.delete(`api/categories/${id}`);
             setCategories(prev => prev.filter(c => c.id !== id));
         } catch (err) {
             const error = err as AxiosError;
@@ -202,7 +202,7 @@ const Dashboard: React.FC = () => {
     const logWeight = async () => {
         if (!userId) return;
         try {
-            const response = await axiosInstance.post('/weight_logs', {
+            const response = await axiosInstance.post('/api/weight_logs', {
                 user_id: userId,
                 weight_lb: weight,
                 log_date: logDate,
@@ -232,7 +232,7 @@ const Dashboard: React.FC = () => {
                     unit: goal.unit,
                 }));
 
-                const res = await axiosInstance.post<Food>('/food_logs/foods', {
+                const res = await axiosInstance.post<Food>('/api/food_logs/foods', {
                     name: foodName,
                     serving_size: servingSize,
                     category,
@@ -261,7 +261,7 @@ const Dashboard: React.FC = () => {
             return;
         }
         try {
-            const response = await axiosInstance.post('/food_logs/food_logs', {
+            const response = await axiosInstance.post('/api/food_logs/food_logs', {
                 user_id: userId,
                 food_id: selectedFood.id,
                 servings,

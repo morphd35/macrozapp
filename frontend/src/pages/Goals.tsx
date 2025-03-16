@@ -56,7 +56,7 @@ const Goals: React.FC = () => {
     const fetchGoals = async () => {
         if (!userId) return;
         try {
-            const res = await axiosInstance.get<MacroGoal[]>(`/food_logs/goals/${userId}`);
+            const res = await axiosInstance.get<MacroGoal[]>(`api/food_logs/goals/${userId}`);
             console.log('Goals Response:', res.data);
             setGoals(res.data || []);
         } catch (err) {
@@ -74,7 +74,7 @@ const Goals: React.FC = () => {
         }
 
         try {
-            const response = await axiosInstance.post('/food_logs/goals', {
+            const response = await axiosInstance.post('/api/food_logs/goals', {
                 user_id: userId,
                 macro_name: newGoal.macro_name,
                 target_value: newGoal.target_value,
@@ -98,7 +98,7 @@ const Goals: React.FC = () => {
         if (!userId || !editGoal) return;
 
         try {
-            const response = await axiosInstance.put(`/food_logs/goals/${userId}/${editGoal.macro_name}`, {
+            const response = await axiosInstance.put(`api/food_logs/goals/${userId}/${editGoal.macro_name}`, {
                 target_value: editGoal.target_value,
                 unit: editGoal.unit,
                 goal_type: editGoal.goal_type,
@@ -118,7 +118,7 @@ const Goals: React.FC = () => {
     const deleteGoal = async (macro_name: string) => {
         if (!userId) return;
         try {
-            await axiosInstance.delete(`/food_logs/goals/${userId}/${macro_name}`);
+            await axiosInstance.delete(`api/food_logs/goals/${userId}/${macro_name}`);
             await fetchGoals();
             alert('Goal deleted successfully');
         } catch (err) {

@@ -67,7 +67,7 @@ const FoodMaintenance: React.FC = () => {
 
     const fetchFoods = async () => {
         try {
-            const response = await axiosInstance.get<Food[]>('/food_logs/foods');
+            const response = await axiosInstance.get<Food[]>('/api/food_logs/foods');
             console.log('Fetched foods:', response.data);
             setFoods(response.data);
         } catch (err) {
@@ -78,7 +78,7 @@ const FoodMaintenance: React.FC = () => {
 
     const fetchCategories = async () => {
         try {
-            const response = await axiosInstance.get<Category[]>('/categories');
+            const response = await axiosInstance.get<Category[]>('/api/categories');
             console.log('Fetched categories:', response.data);
             setCategories(response.data);
         } catch (err) {
@@ -92,7 +92,7 @@ const FoodMaintenance: React.FC = () => {
             const token = localStorage.getItem('token');
             if (token) {
                 const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
-                const response = await axiosInstance.get<MacroGoal[]>(`/food_logs/goals/${decoded.id}`);
+                const response = await axiosInstance.get<MacroGoal[]>(`api/food_logs/goals/${decoded.id}`);
                 console.log('Fetched goals:', response.data);
                 setGoals(response.data);
             }
@@ -105,7 +105,7 @@ const FoodMaintenance: React.FC = () => {
     const addCategory = async () => {
         if (newCategory.trim()) {
             try {
-                const response = await axiosInstance.post<Category>('/categories', { name: newCategory });
+                const response = await axiosInstance.post<Category>('/api/categories', { name: newCategory });
                 setCategories(prev => [...prev, response.data]);
                 setNewCategory('');
             } catch (err) {
@@ -119,7 +119,7 @@ const FoodMaintenance: React.FC = () => {
     const editCategory = async () => {
         if (editingCategory && editingCategory.name.trim()) {
             try {
-                const response = await axiosInstance.put<Category>(`/categories/${editingCategory.id}`, { name: editingCategory.name });
+                const response = await axiosInstance.put<Category>(`api/categories/${editingCategory.id}`, { name: editingCategory.name });
                 setCategories(prev => prev.map(c => c.id === editingCategory.id ? response.data : c));
                 setEditingCategory(null);
             } catch (err) {
@@ -132,7 +132,7 @@ const FoodMaintenance: React.FC = () => {
 
     const deleteCategory = async (id: number) => {
         try {
-            const response = await axiosInstance.delete(`/categories/${id}`);
+            const response = await axiosInstance.delete(`api/categories/${id}`);
             setCategories(prev => prev.filter(c => c.id !== id));
         } catch (err) {
             const error = err as AxiosError;
@@ -162,7 +162,7 @@ const FoodMaintenance: React.FC = () => {
 
         if (foodData.name && foodData.serving_size && foodData.category) {
             try {
-                const response = await axiosInstance.post<Food>('/food_logs/foods', foodData);
+                const response = await axiosInstance.post<Food>('/api/food_logs/foods', foodData);
                 console.log('Add Food Response:', response.data);
                 setFoods(prevFoods => [...prevFoods, response.data]);
                 await fetchFoods();
@@ -196,7 +196,7 @@ const FoodMaintenance: React.FC = () => {
         };
 
         try {
-            const response = await axiosInstance.put<Food>(`/foods/${editingFood.id}`, updatedFood);
+            const response = await axiosInstance.put<Food>(`api/foods/${editingFood.id}`, updatedFood);
             setFoods(prevFoods => prevFoods.map(f => (f.id === editingFood.id ? response.data : f)));
             await fetchFoods();
             setShowEditModal(false);
@@ -216,7 +216,7 @@ const FoodMaintenance: React.FC = () => {
     const deleteFood = async () => {
         if (foodToDelete === null) return;
         try {
-            const response = await axiosInstance.delete(`/foods/${foodToDelete}`);
+            const response = await axiosInstance.delete(`api/foods/${foodToDelete}`);
             setFoods(prevFoods => prevFoods.filter(f => f.id !== foodToDelete));
             await fetchFoods();
             setShowDeleteModal(false);

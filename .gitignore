@@ -3,3 +3,5 @@ build/
 *.log
 .env
 backend/*.sqlite
+.env.development
+.env.production

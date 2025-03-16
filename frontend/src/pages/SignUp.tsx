@@ -21,7 +21,7 @@ const Signup: React.FC = () => {
         e.preventDefault();
         console.log('Submitting signup:', { username, email, password });
         try {
-            const response = await axiosInstance.post('/reset-password', { username, email, password });
+            const response = await axiosInstance.post('/api/reset-password', { username, email, password });
             console.log('Signup success:', response.data);
             const { token } = response.data; // Correct variable name
             localStorage.setItem('token', token);

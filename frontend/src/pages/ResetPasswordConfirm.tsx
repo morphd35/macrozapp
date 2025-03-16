@@ -31,7 +31,7 @@ const ResetPasswordConfirm: React.FC = () => {
             return;
         }
         try {
-            const response = await axiosInstance.post('/reset-password-confirm', {
+            const response = await axiosInstance.post('/api/reset-password-confirm', {
                 token,
                 newPassword,
             });

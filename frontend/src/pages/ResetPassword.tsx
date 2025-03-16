@@ -14,7 +14,7 @@ const ResetPassword: React.FC = () => {
         e.preventDefault();
         console.log('Submitting reset password request for:', email);
         try {
-            const response = await axiosInstance.post('/reset-password', { email });
+            const response = await axiosInstance.post('/api/reset-password', { email });
             console.log('Reset password request success:', response.data);
             setMessage('A reset link has been sent to your email.');
             setError('');

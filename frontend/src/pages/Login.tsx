@@ -19,7 +19,7 @@ const Login: React.FC = () => {
         e.preventDefault();
         console.log('Submitting login:', { username, password });
         try {
-            const response = await axiosInstance.post('/login', { username, password });
+            const response = await axiosInstance.post('/api/login', { username, password });
             console.log('Login success:', response.data);
             const { token } = response.data;
             localStorage.setItem('token', token);

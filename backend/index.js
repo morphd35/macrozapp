@@ -8,6 +8,8 @@ const allowedOrigins = [
     'http://localhost:3000', // Default React port (just in case)
     'http://localhost:3001', // Your current frontend port
     'https://macrozapp-cbtd-4y5bc7dck-morphd35s-projects.vercel.app/', // Your production frontend URL (adjust if different)
+    'https://macrozapp-cbtd-ip0zur8zh-morphd35s-projects.vercel.app',
+    'https://macrozapp-cbtd-1pfbqan3p-morphd35s-projects.vercel.app',
 ];
 
 app.use(cors({
@@ -27,10 +29,20 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
 app.use((req, res, next) => {
     console.log(`Incoming ${req.method} request to ${req.url} with body:`, req.body);
     next();
 });
+
+app.use((req, res, next) => {
+    if (req.path === '/login' && req.method === 'POST') {
+        console.log('Redirecting /login to /api/login');
+        req.url = '/api/login'; // Replace, don’t append
+    }
+    next();
+});
+
 // Serve static files with cache control (add after app.use(express.json()))
 app.use(express.static('frontend/build', {
     setHeaders: (res, path) => {

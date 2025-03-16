@@ -99,7 +99,7 @@ const Logs: React.FC = () => {
 
     const fetchGoals = async () => {
         try {
-            const res = await axiosInstance.get<MacroGoal[]>(`/food_logs/goals/${userId}`);
+            const res = await axiosInstance.get<MacroGoal[]>(`/api/food_logs/goals/${userId}`);
             console.log('Goals Response:', res.data);
             setGoals(res.data || []);
         } catch (err) {

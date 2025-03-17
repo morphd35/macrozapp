@@ -102,8 +102,8 @@ const resetPasswordConfirmRoutes = require('./routes/reset-password-confirm');
 app.use('/api/reset-password-confirm', resetPasswordConfirmRoutes);
 console.log('Reset password confirm route mounted at /api/reset-password-confirm');
 
-app.get('/api/login/test', (req, res) => {
-    res.send('GET test for /api/login/test');
+app.all('/api/login/test', (req, res) => {
+    res.json({ method: req.method, url: req.url });
 });
 
 app.use('/api/food_logs', foodLogsRoutes);

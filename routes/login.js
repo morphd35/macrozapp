@@ -7,6 +7,11 @@ const router = express.Router();
 console.log('Loading login route'); // Debug log on file load
 
 router.post('/', async (req, res) => {
+    console.log('Received POST /api/login with method:', req.method, 'headers:', req.headers);
+    // ... rest of the code
+});
+
+router.post('/', async (req, res) => {
     console.log('Handling login request with body:', req.body); // Debug log
     const { username, password } = req.body;
     const db = req.app.get('db');

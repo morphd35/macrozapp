@@ -6,9 +6,13 @@ const router = express.Router();
 
 console.log('Loading login route'); // Debug log on file load
 
-router.post('/', async (req, res) => {
-    console.log('Received POST /api/login with method:', req.method, 'headers:', req.headers);
-    // ... rest of the code
+router.all('/', (req, res, next) => {
+    console.log(`Received ${req.method} request to /api/login with body:`, req.body, 'headers:', req.headers);
+    if (req.method === 'POST') {
+        next();
+    } else {
+        res.status(405).json({ error: 'Method Not Allowed' });
+    }
 });
 
 router.post('/', async (req, res) => {

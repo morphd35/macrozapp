@@ -32,6 +32,14 @@ app.use(cors({
 
 app.use(express.json());
 
+// Add this right after app.use(express.json())
+app.use((req, res, next) => {
+    console.log(`Received ${req.method} request to ${req.url} with headers:`, req.headers);
+    next();
+});
+
+
+
 app.use((req, res, next) => {
     console.log(`Incoming ${req.method} request to ${req.url} with body:`, req.body);
     next();

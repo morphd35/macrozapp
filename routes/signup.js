@@ -7,7 +7,13 @@ const router = express.Router();
 router.post('/', async (req, res) => {
     const { username, password } = req.body;
 
+
     try {
+        const db = req.app.get('db'); // Retrieve db from Express app
+        if (!db) {
+            console.error('Database not initialized in signup route');
+            return res.status(500).json({ error: 'Database not initialized' });
+        }
         const hashedPassword = await bcrypt.hash(password, 10);
         const [newUser] = await db('users')
             .insert({ username, password: hashedPassword })

@@ -2,11 +2,17 @@
     "routes": [
         {
             "src": "/api/login",
-            "dest": "backend/index.js"
+            "dest": "backend/index.js",
+            "methods": [
+                "POST"
+            ]
         },
         {
             "src": "/api/signup",
-            "dest": "backend/index.js"
+            "dest": "backend/index.js",
+            "methods": [
+                "POST"
+            ]
         },
         {
             "src": "/api/(.*)",

@@ -2,15 +2,15 @@
     "routes": [
         {
             "src": "/api/login",
-            "dest": "/api/login.js"
+            "dest": "backend/routes/login.js"
         },
         {
             "src": "/api/signup",
-            "dest": "/api/signup.js"
+            "dest": "backend/routes/signup.js"
         },
         {
             "src": "/api/(.*)",
-            "dest": "/index.js"
+            "dest": "backend/index.js"
         }
     ],
     "functions": {

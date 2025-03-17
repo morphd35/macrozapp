@@ -9,9 +9,8 @@ const allowedOrigins = [
     'http://localhost:3001', // Your current frontend port
     'https://macrozapp.com',
     'https://www.macrozapp.com',
-    'https://macrozapp-cbtd-4y5bc7dck-morphd35s-projects.vercel.app/', // Your production frontend URL (adjust if different)
-    'https://macrozapp-cbtd-ip0zur8zh-morphd35s-projects.vercel.app',
-    'https://macrozapp-cbtd-1pfbqan3p-morphd35s-projects.vercel.app',
+    'https://macrozapp.vercel.app',
+
 ];
 
 app.use(cors({

@@ -37,7 +37,10 @@ router.post('/', async (req, res) => {
 
     if (user) {
         const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
+
+        console.log('Sending Link in email:', getFrontendBaseUrl());
         const resetLink = `${getFrontendBaseUrl()}/reset-password-confirm?token=${resetToken}`;
+        console.log('Link Created for email:', resetLink);
 
         const mailOptions = {
             from: '"Macrozapp Support" <support@macrozapp.com>',

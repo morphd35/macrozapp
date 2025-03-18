@@ -4,7 +4,7 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
-// Dynamically determine the frontend base URL
+// Dynamically determine the frontend base URL for production or development
 const getFrontendBaseUrl = () => {
     console.log('NODE_ENV:', process.env.NODE_ENV); // Debug log
     if (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME) {

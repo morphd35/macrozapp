@@ -6,15 +6,13 @@ const router = express.Router();
 
 // Dynamically determine the frontend base URL for production or development
 const getFrontendBaseUrl = () => {
-    console.log('NODE_ENV:', process.env.NODE_ENV); // Debug log
-    console.log('HEROKU_APP_NAME:', process.env.HEROKU_APP_NAME); // Heroku-specific env
-    if (process.env.FRONTEND_BASE_URL) {
-        return process.env.FRONTEND_BASE_URL; // Use env var if set
-    }
-    if (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME) {
-        return 'https://macrozapp.com';
-    }
-    return 'http://localhost:3001';
+    const url = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME ? 'https://macrozapp.com' : 'http://localhost:3001');
+    console.log('Determined frontend base URL:', url, 'with env vars:', {
+        FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL,
+        NODE_ENV: process.env.NODE_ENV,
+        HEROKU_APP_NAME: process.env.HEROKU_APP_NAME,
+    });
+    return url;
 };
 
 const transporter = nodemailer.createTransport({

@@ -5,25 +5,28 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 // Override console.log to force immediate output
+// Override console.log to force immediate output
 console.log = (...args) => {
-    process.stdout.write(args.join(' ') + '\n');
+    process.stdout.write('DEBUG: ' + args.join(' ') + '\n');
     process.stdout.write('\n'); // Ensure flush
 };
 
 // Dynamically determine the frontend base URL for production or development
 const getFrontendBaseUrl = () => {
+    console.log('DEBUG: Entering getFrontendBaseUrl');
+    let url;
     try {
-        const url = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME ? 'https://macrozapp.com' : 'http://localhost:3001');
-        console.log('Determined frontend base URL:', url, 'with env vars:', {
+        url = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME ? 'https://macrozapp.com' : 'http://localhost:3001');
+        console.log('DEBUG: Determined frontend base URL:', url, 'with env vars:', {
             FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL,
             NODE_ENV: process.env.NODE_ENV,
             HEROKU_APP_NAME: process.env.HEROKU_APP_NAME,
         });
-        return url;
     } catch (err) {
-        console.error('Error in getFrontendBaseUrl:', err);
-        return 'https://macrozapp.com'; // Fallback to production URL on error
+        console.error('DEBUG: Error in getFrontendBaseUrl:', err);
+        url = 'https://macrozapp.com'; // Fallback to production URL on error
     }
+    console.log('DEBUG: Returning frontend base URL:', url);
 };
 
 const transporter = nodemailer.createTransport({
@@ -36,17 +39,17 @@ const transporter = nodemailer.createTransport({
 
 router.post('/', async (req, res) => {
     const { email } = req.body;
-    console.log('Received email for reset:', email);
+    console.log('DEBUG: Received email for reset:', email);
     const db = req.app.get('db');
     const user = await db('users').where({ email: email.toLowerCase() }).first();
-    console.log('Queried user:', user);
+    console.log('DEBUG: Queried user:', user);
 
     if (user) {
         const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        console.log('Sending Link in email:', getFrontendBaseUrl());
+        console.log('DEBUG: Sending Link in email:', getFrontendBaseUrl());
         const resetLink = `${getFrontendBaseUrl()}/reset-password-confirm?token=${resetToken}`;
-        console.log('Link Created for email:', resetLink);
+        console.log('DEBUG: Link Created for email:', resetLink);
 
         const mailOptions = {
             from: '"Macrozapp Support" <support@macrozapp.com>',
@@ -62,11 +65,12 @@ router.post('/', async (req, res) => {
         };
 
         try {
+            console.log('DEBUG: Attempting to send email with link:', resetLink);
             await transporter.sendMail(mailOptions);
-            console.log('Email sent successfully for reset link:', resetLink);
+            console.log('DEBUG: Email sent successfully for reset link:', resetLink);
             res.json({ message: 'A reset link has been sent to your email.' });
         } catch (err) {
-            console.error('Error sending email:', err);
+            console.error('DEBUG: Error sending email:', err);
             res.status(500).json({ error: 'Failed to send reset email. Please try again later.', details: err.message });
         }
     } else {

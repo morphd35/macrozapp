@@ -13,9 +13,9 @@ const allowedOrigins = [
 
 ];
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
-        console.log('CORS check - Origin:', origin); // Debug log
+        console.log('CORS check - Origin:', origin);
         if (!origin || allowedOrigins.includes(origin)) {
             console.log('CORS allowed for:', origin);
             callback(null, true);
@@ -27,8 +27,9 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-}));
+};
 
+app.use(cors(corsOptions));
 app.options('*', cors(corsOptions)); // Apply CORS to all OPTIONS requests
 
 app.use(express.json());

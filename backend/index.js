@@ -29,6 +29,7 @@ app.use(cors({
     credentials: true,
 }));
 
+app.options('*', cors(corsOptions)); // Apply CORS to all OPTIONS requests
 
 app.use(express.json());
 
@@ -92,6 +93,14 @@ const categoriesRoutes = require('./routes/categories');
 
 try {
     const loginRoutes = require('./routes/login'); // Define here
+    app.use('/api/login', (req, res, next) => {
+        console.log(`API Login ${req.method} request received:`, {
+            url: req.url,
+            headers: req.headers,
+            body: req.body,
+        });
+        next();
+    });
     app.use('/api/login', loginRoutes);
     console.log('Login route mounted at /api/login');
 } catch (err) {

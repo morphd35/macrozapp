@@ -29,6 +29,7 @@ app.use(cors({
     credentials: true,
 }));
 
+
 app.use(express.json());
 
 // Add this right after app.use(express.json())
@@ -123,9 +124,9 @@ app.use((req, res, next) => {
     next();
 });
 
-app.get('/', (req, res) => {
-    res.json({ message: 'Macrozapp Backend API' });
-});
+// app.get('/', (req, res) => {
+//     res.json({ message: 'Macrozapp Backend API' });
+// });
 
 // Add this after all app.use() calls
 console.log('Registered routes:');

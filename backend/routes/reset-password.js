@@ -31,7 +31,7 @@ router.post('/', async (req, res) => {
 
         const baseUrl = process.env.FRONTEND_BASE_URL;
         console.log('DEBUG: Sending Link in email:', baseUrl);
-        const resetLink = `${baseUrl}/reset-password-confirm?token=${resetToken}`;
+        const resetLink = `https://macrozapp.com/reset-password-confirm?token=${resetToken}`;
         console.log('DEBUG: Link Created for email:', resetLink);
 
         const mailOptions = {

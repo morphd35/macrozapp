@@ -123,6 +123,10 @@ app.use((req, res, next) => {
     next();
 });
 
+app.get('/', (req, res) => {
+    res.json({ message: 'Macrozapp Backend API' });
+});
+
 // Add this after all app.use() calls
 console.log('Registered routes:');
 app._router.stack.forEach((middleware) => {

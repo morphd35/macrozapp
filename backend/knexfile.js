@@ -18,6 +18,7 @@ module.exports = {
             directory: './seeds',
         },
     },
+    // Make sure this goes to Neon for Prod.
     production: {
         client: 'pg',
         connection: {

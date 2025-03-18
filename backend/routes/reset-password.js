@@ -11,24 +11,6 @@ console.log = (...args) => {
     process.stdout.write('\n'); // Ensure flush
 };
 
-// Dynamically determine the frontend base URL for production or development
-const getFrontendBaseUrl = () => {
-    console.log('DEBUG: Entering getFrontendBaseUrl');
-    let url;
-    try {
-        url = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME ? 'https://macrozapp.com' : 'http://localhost:3001');
-        console.log('DEBUG: Determined frontend base URL:', url, 'with env vars:', {
-            FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL,
-            NODE_ENV: process.env.NODE_ENV,
-            HEROKU_APP_NAME: process.env.HEROKU_APP_NAME,
-        });
-    } catch (err) {
-        console.error('DEBUG: Error in getFrontendBaseUrl:', err);
-        url = 'https://macrozapp.com'; // Fallback to production URL on error
-    }
-    console.log('DEBUG: Returning frontend base URL:', url);
-};
-
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -47,8 +29,9 @@ router.post('/', async (req, res) => {
     if (user) {
         const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        console.log('DEBUG: Sending Link in email:', getFrontendBaseUrl());
-        const resetLink = `${getFrontendBaseUrl()}/reset-password-confirm?token=${resetToken}`;
+        const baseUrl = process.env.FRONTEND_BASE_URL;
+        console.log('DEBUG: Sending Link in email:', baseUrl);
+        const resetLink = `${baseUrl}/reset-password-confirm?token=${resetToken}`;
         console.log('DEBUG: Link Created for email:', resetLink);
 
         const mailOptions = {

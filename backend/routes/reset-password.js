@@ -6,13 +6,18 @@ const router = express.Router();
 
 // Dynamically determine the frontend base URL for production or development
 const getFrontendBaseUrl = () => {
-    const url = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME ? 'https://macrozapp.com' : 'http://localhost:3001');
-    console.log('Determined frontend base URL:', url, 'with env vars:', {
-        FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL,
-        NODE_ENV: process.env.NODE_ENV,
-        HEROKU_APP_NAME: process.env.HEROKU_APP_NAME,
-    });
-    return url;
+    try {
+        const url = process.env.FRONTEND_BASE_URL || (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME ? 'https://macrozapp.com' : 'http://localhost:3001');
+        console.log('Determined frontend base URL:', url, 'with env vars:', {
+            FRONTEND_BASE_URL: process.env.FRONTEND_BASE_URL,
+            NODE_ENV: process.env.NODE_ENV,
+            HEROKU_APP_NAME: process.env.HEROKU_APP_NAME,
+        });
+        return url;
+    } catch (err) {
+        console.error('Error in getFrontendBaseUrl:', err);
+        return 'https://macrozapp.com'; // Fallback to production URL on error
+    }
 };
 
 const transporter = nodemailer.createTransport({
@@ -49,6 +54,7 @@ router.post('/', async (req, res) => {
 
         try {
             await transporter.sendMail(mailOptions);
+            console.log('Email sent successfully for reset link:', resetLink);
             res.json({ message: 'A reset link has been sent to your email.' });
         } catch (err) {
             console.error('Error sending email:', err);

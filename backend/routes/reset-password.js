@@ -4,6 +4,12 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
+// Override console.log to force immediate output
+console.log = (...args) => {
+    process.stdout.write(args.join(' ') + '\n');
+    process.stdout.write('\n'); // Ensure flush
+};
+
 // Dynamically determine the frontend base URL for production or development
 const getFrontendBaseUrl = () => {
     try {

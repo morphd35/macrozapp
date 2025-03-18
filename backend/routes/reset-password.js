@@ -4,6 +4,15 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
+// Dynamically determine the frontend base URL
+const getFrontendBaseUrl = () => {
+    console.log('NODE_ENV:', process.env.NODE_ENV); // Debug log
+    if (process.env.NODE_ENV === 'production' || process.env.HEROKU_APP_NAME) {
+        return 'https://macrozapp.com';
+    }
+    return 'http://localhost:3001';
+};
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -21,7 +30,7 @@ router.post('/', async (req, res) => {
 
     if (user) {
         const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        const resetLink = `http://localhost:3001/reset-password-confirm?token=${resetToken}`;
+        const resetLink = `${getFrontendBaseUrl()}/reset-password-confirm?token=${resetToken}`;
 
         const mailOptions = {
             from: '"Macrozapp Support" <support@macrozapp.com>',
@@ -41,7 +50,7 @@ router.post('/', async (req, res) => {
             res.json({ message: 'A reset link has been sent to your email.' });
         } catch (err) {
             console.error('Error sending email:', err);
-            res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
+            res.status(500).json({ error: 'Failed to send reset email. Please try again later.', details: err.message });
         }
     } else {
         res.status(404).json({ error: 'User not found' });

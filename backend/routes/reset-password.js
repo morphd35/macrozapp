@@ -5,14 +5,6 @@ const nodemailer = require('nodemailer');
 const router = express.Router();
 
 
-// backend/routes/reset-password.js
-console.log('DEBUG: reset-password.js loaded with marker 2025-03-19-00:30');
-
-// Override console.log to force immediate output
-console.log = (...args) => {
-    process.stdout.write('DEBUG: ' + args.join(' ') + '\n');
-    process.stdout.write('\n'); // Ensure flush
-};
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -32,9 +24,11 @@ router.post('/', async (req, res) => {
     if (user) {
         const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-        const baseUrl = process.env.FRONTEND_BASE_URL;
-        console.log('DEBUG: Sending Link in email:', baseUrl);
-        const resetLink = `https://macrozapp.com/reset-password-confirm?token=${resetToken}`;
+        const baseUrl = process.env.NODE_ENV === 'production'
+            ? 'https://macrozapp.com'
+            : 'http://localhost:3001';
+
+        const resetLink = `${baseUrl}/reset-password-confirm?token=${resetToken}`;
         console.log('DEBUG: Link Created for email:', resetLink);
 
         const mailOptions = {

@@ -5,19 +5,44 @@ const bcrypt = require('bcrypt');
 const router = express.Router();
 
 router.post('/', async (req, res) => {
-    const { username, password } = req.body;
-
-
     try {
-        const db = req.app.get('db'); // Retrieve db from Express app
+        const db = req.app.get('db');
         if (!db) {
-            console.error('Database not initialized in signup route');
+            console.error('DEBUG: Database not initialized in POST /signup');
             return res.status(500).json({ error: 'Database not initialized' });
         }
+
+        const { username, email, password } = req.body;
+        if (!username || !email || !password) {
+            return res.status(400).json({ error: 'Username, email, and password are required' });
+        }
+
+        // Check if username or email already exists
+        const existingUser = await db('users')
+            .where({ username })
+            .orWhere({ email: email.toLowerCase() })
+            .first();
+        if (existingUser) {
+            if (existingUser.username === username) {
+                return res.status(409).json({ error: 'Username already exists' });
+            }
+            if (existingUser.email === email.toLowerCase()) {
+                return res.status(409).json({ error: 'Email already exists' });
+            }
+        }
+
         const hashedPassword = await bcrypt.hash(password, 10);
+        console.log('DEBUG: Hashed password for user:', username);
+
         const [newUser] = await db('users')
-            .insert({ username, password: hashedPassword })
-            .returning(['id', 'username']);
+            .insert({
+                username,
+                email: email.toLowerCase(),
+                password: hashedPassword,
+            })
+            .returning(['id', 'username', 'email']);
+
+        console.log('DEBUG: Inserted new user:', newUser);
 
         // Add default macro goals
         const defaultGoals = [
@@ -37,11 +62,27 @@ router.post('/', async (req, res) => {
             }))
         );
 
-        const token = jwt.sign({ id: newUser.id, username: newUser.username }, process.env.JWT_SECRET || 'your_secret_key', { expiresIn: '1h' });
+        console.log('DEBUG: Inserted default macro goals for user_id:', newUser.id);
+
+        const token = jwt.sign(
+            { id: newUser.id, username: newUser.username },
+            process.env.JWT_SECRET || 'your_secret_key',
+            { expiresIn: '1h' }
+        );
+
+        console.log('DEBUG: Generated JWT token for user:', newUser.username);
         res.status(201).json({ token });
     } catch (err) {
-        console.error('Error in POST /signup:', err.message, err.stack);
-        res.status(500).json({ error: 'Failed to create user' });
+        console.error('DEBUG: Error in POST /signup:', err.message, err.stack);
+        if (err.message.includes('duplicate key value violates unique constraint')) {
+            if (err.message.includes('users_username_unique')) {
+                return res.status(409).json({ error: 'Username already exists' });
+            }
+            if (err.message.includes('users_email_unique')) {
+                return res.status(409).json({ error: 'Email already exists' });
+            }
+        }
+        res.status(500).json({ error: 'Failed to create user', details: err.message });
     }
 });
 

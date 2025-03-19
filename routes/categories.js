@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 
-const db = req.app.get('db');
+
 router.get('/', async (req, res) => {
     try {
+        const db = req.app.get('db');
         const categories = await db('categories').select('*');
         res.json(categories);
     } catch (err) {
@@ -13,6 +14,7 @@ router.get('/', async (req, res) => {
 
 router.post('/', async (req, res) => {
     try {
+        const db = req.app.get('db');
         const { name } = req.body;
         const [newCategory] = await db('categories').insert({ name }).returning('*');
         res.status(201).json(newCategory);
@@ -23,6 +25,7 @@ router.post('/', async (req, res) => {
 
 router.put('/:id', async (req, res) => {
     try {
+        const db = req.app.get('db');
         const { id } = req.params;
         const { name } = req.body;
         const [updatedCategory] = await db('categories').where({ id }).update({ name }).returning('*');
@@ -34,6 +37,7 @@ router.put('/:id', async (req, res) => {
 
 router.delete('/:id', async (req, res) => {
     try {
+        const db = req.app.get('db');
         const { id } = req.params;
         await db('categories').where({ id }).del();
         res.status(204).send();

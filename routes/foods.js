@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-const db = req.app.get('db');
+
 // Get goals for a user
 router.get('/goals/:user_id', async (req, res) => {
     const { user_id } = req.params;
@@ -12,6 +12,7 @@ router.get('/goals/:user_id', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         const goals = await db('user_macro_goals').where('user_id', parsedUserId);
         res.json(goals); // Array of goals
     } catch (err) {
@@ -30,6 +31,7 @@ router.post('/goals', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         const result = await db('user_macro_goals')
             .insert({
                 user_id: parsedUserId,
@@ -65,6 +67,7 @@ router.post('/foods', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         // Check if a food with the same name already exists
         const existingFood = await db('foods').where('name', name).first();
         if (existingFood) {
@@ -109,6 +112,7 @@ router.post('/foods', async (req, res) => {
 // Get all foods with their macros
 router.get('/foods', async (req, res) => {
     try {
+        const db = req.app.get('db');
         const foods = await db('foods').select('*');
         console.log('Fetched foods from database:', foods);
 
@@ -143,6 +147,7 @@ router.put('/:id', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         // Update the base food details
         const [updatedFood] = await db('foods')
             .where({ id: parsedId })
@@ -197,6 +202,7 @@ router.delete('/:id', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         // Delete associated macros first
         await db('food_macros').where('food_id', parsedId).del();
 
@@ -223,6 +229,7 @@ router.delete('/goals/:user_id/:macro_name', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         const deletedCount = await db('user_macro_goals')
             .where({ user_id: parsedUserId, macro_name })
             .del();
@@ -249,6 +256,7 @@ router.put('/goals/:user_id/:macro_name', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         const result = await db('user_macro_goals')
             .where({ user_id: parsedUserId, macro_name })
             .update({
@@ -279,6 +287,7 @@ router.get('/:user_id/:date', async (req, res) => {
     }
 
     try {
+        const db = req.app.get('db');
         const trackedMacrosRaw = await db('user_macro_goals')
             .where('user_id', parsedUserId)
             .pluck('macro_name');
@@ -344,6 +353,7 @@ router.get('/detailed/:user_id/:date', async (req, res) => {
         return res.status(400).json({ error: 'user_id must be a valid integer' });
     }
     try {
+        const db = req.app.get('db');
         console.log('Querying detailed logs for user_id:', parsedUserId, 'date:', date);
         const detailedLogs = await db('food_logs')
             .join('foods', 'food_logs.food_id', 'foods.id')
@@ -379,6 +389,7 @@ router.get('/range/:user_id/:start_date/:end_date', async (req, res) => {
         return res.status(400).json({ error: 'dates must be in YYYY-MM-DD format' });
     }
     try {
+        const db = req.app.get('db');
         const foodLogs = await db('food_logs')
             .join('foods', 'food_logs.food_id', 'foods.id')
             .join('food_log_macros', 'food_logs.id', 'food_log_macros.food_log_id')
@@ -405,6 +416,7 @@ router.get('/range/:user_id/:start_date/:end_date', async (req, res) => {
 router.post('/food_logs', async (req, res) => {
     const { user_id, food_id, servings, log_date } = req.body;
     try {
+        const db = req.app.get('db');
         console.log('Received POST data:', { user_id, food_id, servings, log_date });
 
         const foodMacros = await db('food_macros')
@@ -458,6 +470,7 @@ router.post('/weight_logs', async (req, res) => {
         return res.status(400).json({ error: 'user_id, weight_lb, and log_date are required' });
     }
     try {
+        const db = req.app.get('db');
         await db('weight_logs').insert({
             user_id: parsedUserId,
             weight_lb,

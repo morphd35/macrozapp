@@ -2,11 +2,12 @@
 const express = require('express');
 const router = express.Router();
 
-const db = req.app.get('db');
+
 // Add a weight log
 router.post('/', async (req, res) => {
     const { user_id, weight_lb, log_date } = req.body;
     try {
+        const db = req.app.get('db');
         const [weightLog] = await db('weight_logs')
             .insert({ user_id, weight_lb, log_date })
             .returning('*');
@@ -21,6 +22,7 @@ router.post('/', async (req, res) => {
 router.get('/', async (req, res) => {
     const { user_id, date } = req.query;
     try {
+        const db = req.app.get('db');
         const weightLogs = await db('weight_logs')
             .select('id', 'weight_lb', 'log_date')
             .where('user_id', user_id)
@@ -44,6 +46,7 @@ router.get('/range', async (req, res) => {
         return res.status(400).json({ error: 'dates must be in YYYY-MM-DD format' });
     }
     try {
+        const db = req.app.get('db');
         const weightLogs = await db('weight_logs')
             .select('id', 'weight_lb', 'log_date')
             .where('user_id', parsedUserId)

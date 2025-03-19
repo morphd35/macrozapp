@@ -4,6 +4,16 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
+
+// backend/routes/reset-password.js
+console.log('DEBUG: reset-password.js loaded with marker 2025-03-19-00:30');
+
+// Override console.log to force immediate output
+console.log = (...args) => {
+    process.stdout.write('DEBUG: ' + args.join(' ') + '\n');
+    process.stdout.write('\n'); // Ensure flush
+};
+
 const transporter = nodemailer.createTransport({
     service: 'gmail',
     auth: {
@@ -14,14 +24,18 @@ const transporter = nodemailer.createTransport({
 
 router.post('/', async (req, res) => {
     const { email } = req.body;
-    console.log('Received email for reset:', email);
+    console.log('DEBUG: Received email for reset:', email);
     const db = req.app.get('db');
     const user = await db('users').where({ email: email.toLowerCase() }).first();
-    console.log('Queried user:', user);
+    console.log('DEBUG: Queried user:', user);
 
     if (user) {
         const resetToken = jwt.sign({ id: user.id }, process.env.JWT_SECRET, { expiresIn: '1h' });
-        const resetLink = `http://localhost:3001/reset-password-confirm?token=${resetToken}`;
+
+        const baseUrl = process.env.FRONTEND_BASE_URL;
+        console.log('DEBUG: Sending Link in email:', baseUrl);
+        const resetLink = `https://macrozapp.com/reset-password-confirm?token=${resetToken}`;
+        console.log('DEBUG: Link Created for email:', resetLink);
 
         const mailOptions = {
             from: '"Macrozapp Support" <support@macrozapp.com>',
@@ -37,11 +51,13 @@ router.post('/', async (req, res) => {
         };
 
         try {
+            console.log('DEBUG: Attempting to send email with link:', resetLink);
             await transporter.sendMail(mailOptions);
+            console.log('DEBUG: Email sent successfully for reset link:', resetLink);
             res.json({ message: 'A reset link has been sent to your email.' });
         } catch (err) {
-            console.error('Error sending email:', err);
-            res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
+            console.error('DEBUG: Error sending email:', err);
+            res.status(500).json({ error: 'Failed to send reset email. Please try again later.', details: err.message });
         }
     } else {
         res.status(404).json({ error: 'User not found' });

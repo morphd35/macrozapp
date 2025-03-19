@@ -6,7 +6,6 @@ const router = express.Router();
 
 
 // backend/routes/reset-password.js
-// backend/routes/reset-password.js (add near the top)
 console.log('DEBUG: reset-password.js loaded with marker 2025-03-19-00:30');
 
 // Override console.log to force immediate output

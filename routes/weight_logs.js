@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 
-
+const db = req.app.get('db');
 // Add a weight log
 router.post('/', async (req, res) => {
     const { user_id, weight_lb, log_date } = req.body;

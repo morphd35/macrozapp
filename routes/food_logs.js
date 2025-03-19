@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-
+const db = req.app.get('db');
 // Get goals for a user  
 router.get('/goals/:user_id', async (req, res) => {
     const { user_id } = req.params;

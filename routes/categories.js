@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 
-
+const db = req.app.get('db');
 router.get('/', async (req, res) => {
     try {
         const categories = await db('categories').select('*');

@@ -1,7 +1,7 @@
 // backend/routes/weight_logs.js
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+
 
 // Add a weight log
 router.post('/', async (req, res) => {

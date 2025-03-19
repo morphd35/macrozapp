@@ -73,7 +73,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// backend/index.js
 app.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     next();

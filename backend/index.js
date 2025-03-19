@@ -112,6 +112,9 @@ const signupRoutes = require('./routes/signup');
 app.use('/api/signup', signupRoutes);
 console.log('Signup route mounted at /api/signup');
 
+// backend/index.js (modify the reset-password route mounting)
+console.log('DEBUG: Clearing module cache for reset-password.js');
+delete require.cache[require.resolve('./routes/reset-password')];
 const resetPasswordRoutes = require('./routes/reset-password');
 app.use('/api/reset-password', resetPasswordRoutes);
 console.log('Reset password route mounted at /api/reset-password');

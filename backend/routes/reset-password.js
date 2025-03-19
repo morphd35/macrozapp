@@ -4,7 +4,10 @@ const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 const router = express.Router();
 
-// Override console.log to force immediate output
+
+// backend/routes/reset-password.js
+console.log('DEBUG: reset-password.js loaded with marker 2025-03-19-00:00');
+
 // Override console.log to force immediate output
 console.log = (...args) => {
     process.stdout.write('DEBUG: ' + args.join(' ') + '\n');

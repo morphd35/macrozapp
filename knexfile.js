@@ -18,12 +18,14 @@ module.exports = {
             directory: './seeds',
         },
     },
+    // Make sure this goes to Neon for Prod.
     production: {
         client: 'pg',
         connection: {
             connectionString: process.env.DATABASE_URL,
             ssl: { rejectUnauthorized: false },
         },
+        pool: { min: 2, max: 10 },
         migrations: {
             directory: './migrations',
         },

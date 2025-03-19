@@ -17,7 +17,7 @@ router.post('/', async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
-        const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+        const hashedNewPassword = await bcrypt.hash(newPassword, 8);
         await db('users').where({ id: userId }).update({ password: hashedNewPassword });
 
         res.json({ message: 'Password reset successfully' });

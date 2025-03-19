@@ -3,7 +3,7 @@ const cors = require('cors');
 const knex = require('knex');
 const app = express();
 
-
+//backend/inded.js
 const allowedOrigins = [
     'http://localhost:3000', // Default React port (just in case)
     'http://localhost:3001', // Your current frontend port

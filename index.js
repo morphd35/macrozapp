@@ -3,7 +3,7 @@ const cors = require('cors');
 const knex = require('knex');
 const app = express();
 
-
+//backend/inded.js
 const allowedOrigins = [
     'http://localhost:3000', // Default React port (just in case)
     'http://localhost:3001', // Your current frontend port
@@ -13,9 +13,9 @@ const allowedOrigins = [
 
 ];
 
-app.use(cors({
+const corsOptions = {
     origin: (origin, callback) => {
-        console.log('CORS check - Origin:', origin); // Debug log
+        console.log('CORS check - Origin:', origin);
         if (!origin || allowedOrigins.includes(origin)) {
             console.log('CORS allowed for:', origin);
             callback(null, true);
@@ -27,7 +27,10 @@ app.use(cors({
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
-}));
+};
+
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions)); // Apply CORS to all OPTIONS requests
 
 app.use(express.json());
 
@@ -91,6 +94,14 @@ const categoriesRoutes = require('./routes/categories');
 
 try {
     const loginRoutes = require('./routes/login'); // Define here
+    app.use('/api/login', (req, res, next) => {
+        console.log(`API Login ${req.method} request received:`, {
+            url: req.url,
+            headers: req.headers,
+            body: req.body,
+        });
+        next();
+    });
     app.use('/api/login', loginRoutes);
     console.log('Login route mounted at /api/login');
 } catch (err) {
@@ -101,6 +112,9 @@ const signupRoutes = require('./routes/signup');
 app.use('/api/signup', signupRoutes);
 console.log('Signup route mounted at /api/signup');
 
+// backend/index.js (modify the reset-password route mounting) 
+console.log('DEBUG: Clearing module cache for reset-password.js');
+delete require.cache[require.resolve('./routes/reset-password')];
 const resetPasswordRoutes = require('./routes/reset-password');
 app.use('/api/reset-password', resetPasswordRoutes);
 console.log('Reset password route mounted at /api/reset-password');
@@ -122,6 +136,10 @@ app.use((req, res, next) => {
     console.log(`Incoming ${req.method} request to ${req.url} with headers:`, req.headers, 'body:', req.body);
     next();
 });
+
+// app.get('/', (req, res) => {
+//     res.json({ message: 'Macrozapp Backend API' });
+// });
 
 // Add this after all app.use() calls
 console.log('Registered routes:');

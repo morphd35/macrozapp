@@ -120,7 +120,7 @@ const Logs: React.FC = () => {
             let url = '';
             if (logType === 'food') {
                 if (timeRange === 'day') {
-                    url = `/food_logs/detailed/${userId}/${selectedDate}`;
+                    url = `/api/food_logs/detailed/${userId}/${selectedDate}`;
                     const res = await axiosInstance.get<ApiFoodLog[]>(url);
                     console.log('API Response (Day):', res.data);
 
@@ -164,7 +164,7 @@ const Logs: React.FC = () => {
                     const end = timeRange === 'week'
                         ? new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() - new Date(selectedDate).getDay() + 6)).toISOString().split('T')[0]
                         : endDate;
-                    url = `/food_logs/range/${userId}/${start}/${end}`;
+                    url = `/api/food_logs/range/${userId}/${start}/${end}`;
                     const res = await axiosInstance.get<ApiFoodLog[]>(url);
                     console.log('API Response (Range):', res.data);
 
@@ -205,7 +205,7 @@ const Logs: React.FC = () => {
                 }
             } else if (logType === 'weight') {
                 if (timeRange === 'day') {
-                    url = `/weight_logs?user_id=${userId}&date=${selectedDate}`;
+                    url = `/api/weight_logs?user_id=${userId}&date=${selectedDate}`;
                     const res = await axiosInstance.get<WeightLog[]>(url);
                     console.log('Weight Logs Response (Day):', res.data);
                     setWeightLogs(res.data);
@@ -216,7 +216,7 @@ const Logs: React.FC = () => {
                     const end = timeRange === 'week'
                         ? new Date(new Date(selectedDate).setDate(new Date(selectedDate).getDate() - new Date(selectedDate).getDay() + 6)).toISOString().split('T')[0]
                         : endDate;
-                    url = `/weight_logs/range?user_id=${userId}&start_date=${start}&end_date=${end}`;
+                    url = `/api/weight_logs/range?user_id=${userId}&start_date=${start}&end_date=${end}`;
                     const res = await axiosInstance.get<WeightLog[]>(url);
                     console.log('Weight Logs Response (Range):', res.data);
                     setWeightLogs(res.data);

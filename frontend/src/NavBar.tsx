@@ -1,16 +1,42 @@
-import React, { useState, useEffect } from 'react';
-import { NavLink, useNavigate, useLocation } from 'react-router-dom'; // Add useLocation
+import React, { useState, useEffect, useRef } from 'react';
+import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import './App.css';
 
 const NavBar: React.FC = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const navigate = useNavigate();
-    const location = useLocation(); // Get the current route
+    const location = useLocation();
+    const navLinksRef = useRef<HTMLDivElement>(null); // Ref for the nav-links container
 
-    // Close the menu whenever the route changes
+    // Close menu on route change
     useEffect(() => {
-        setIsMenuOpen(false); // Close the menu on route change
-    }, [location.pathname]); // Trigger when the pathname changes
+        setIsMenuOpen(false);
+    }, [location.pathname]);
+
+    // Close menu when clicking outside on mobile
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            // Check if the menu is open and the click is outside the nav-links and hamburger icon
+            if (
+                isMenuOpen &&
+                navLinksRef.current &&
+                !navLinksRef.current.contains(event.target as Node) &&
+                !(event.target as HTMLElement).closest('.hamburger-icon')
+            ) {
+                setIsMenuOpen(false);
+            }
+        };
+
+        // Add event listener when the menu is open
+        if (isMenuOpen) {
+            document.addEventListener('click', handleClickOutside);
+        }
+
+        // Clean up the event listener when the menu closes or component unmounts
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [isMenuOpen]); // Re-run effect when isMenuOpen changes
 
     const toggleMenu = () => {
         setIsMenuOpen((prev) => !prev);
@@ -32,13 +58,15 @@ const NavBar: React.FC = () => {
             </div>
 
             {/* Navigation Links */}
-            <div className={`nav-links ${isMenuOpen ? 'open' : ''}`}>
+            <div className={`nav-links ${isMenuOpen ? 'open' : ''}`} ref={navLinksRef}>
                 <ul>
                     <li>
                         <NavLink
                             to="/app/dashboard"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={toggleMenu}
+                            onClick={() => {
+                                toggleMenu();
+                            }}
                         >
                             Dashboard
                         </NavLink>
@@ -47,7 +75,9 @@ const NavBar: React.FC = () => {
                         <NavLink
                             to="/app/goals"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={toggleMenu}
+                            onClick={() => {
+                                toggleMenu();
+                            }}
                         >
                             Goals
                         </NavLink>
@@ -56,7 +86,9 @@ const NavBar: React.FC = () => {
                         <NavLink
                             to="/app/food-maintenance"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={toggleMenu}
+                            onClick={() => {
+                                toggleMenu();
+                            }}
                         >
                             Food Maintenance
                         </NavLink>
@@ -65,13 +97,15 @@ const NavBar: React.FC = () => {
                         <NavLink
                             to="/app/logs"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={toggleMenu}
+                            onClick={() => {
+                                toggleMenu();
+                            }}
                         >
                             Logs
                         </NavLink>
                     </li>
                     <li>
-                        <button className="nav-button" onClick={handleLogout}>
+                        <button className="nav-button logout" onClick={handleLogout}>
                             Logout
                         </button>
                     </li>

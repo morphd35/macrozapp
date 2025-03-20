@@ -1,12 +1,11 @@
+// backend/routes/food_logs.js
 const express = require('express');
 const router = express.Router();
-
 
 // Get goals for a user
 router.get('/goals/:user_id', async (req, res) => {
     const { user_id } = req.params;
     const parsedUserId = parseInt(user_id);
-
 
     if (isNaN(parsedUserId)) {
         return res.status(400).json({ error: 'user_id must be a valid integer' });
@@ -61,65 +60,80 @@ router.post('/goals', async (req, res) => {
 
 // Add custom food
 router.post('/foods', async (req, res) => {
-    const { name, serving_size, category, macros } = req.body; // macros is an array: [{ macro_name, value, unit }, ...]
+    const { user_id, name, serving_size, category, macros } = req.body; // Added user_id
 
-    if (!name || !serving_size || !category || !macros || !Array.isArray(macros)) {
-        return res.status(400).json({ error: 'name, serving_size, category, and macros are required' });
+    if (!user_id || !name || !serving_size || !category || !macros || !Array.isArray(macros)) {
+        return res.status(400).json({ error: 'user_id, name, serving_size, category, and macros are required' });
+    }
+
+    const parsedUserId = parseInt(user_id);
+    if (isNaN(parsedUserId)) {
+        return res.status(400).json({ error: 'user_id must be a valid integer' });
     }
 
     try {
         const db = req.app.get('db');
-        // Insert the food (only base details)
+        // Insert the food with user_id
         const [newFood] = await db('foods')
             .insert({
+                user_id: parsedUserId,
                 name,
                 serving_size,
                 category,
             })
-            .returning(['id']);
+            .returning(['id', 'user_id', 'name', 'serving_size', 'category']);
 
-        console.log('Inserted food:', newFood);
+        console.log('Inserted food for user_id:', parsedUserId, newFood);
 
-        // Insert all macros into food_macros (no fixed macros)
+        // Insert all macros into food_macros
         const macroEntries = macros.map(macro => ({
             food_id: newFood.id,
-            macro_name: macro.macro_name.toLowerCase(), // Standardize to lowercase
-            value: macro.value,
+            macro_name: macro.macro_name.toLowerCase(),
+            value: parseFloat(macro.value),
             unit: macro.unit,
         }));
 
         await db('food_macros').insert(macroEntries);
 
-        console.log('Inserted food macros:', macroEntries);
+        console.log('Inserted food macros for food_id:', newFood.id, macroEntries);
 
         const insertedMacros = await db('food_macros').where('food_id', newFood.id);
         res.status(201).json({ ...newFood, macros: insertedMacros, custom: true });
     } catch (err) {
         console.error('Error adding custom food:', err.message, err.stack);
-        res.status(500).json({ error: 'Failed to add food' });
+        res.status(500).json({ error: 'Failed to add food', details: err.message });
     }
 });
 
-// Get all foods with their macros
+// Get all foods with their macros for a specific user
 router.get('/foods', async (req, res) => {
     try {
         const db = req.app.get('db');
-        const foods = await db('foods').select('*');
-        console.log('Fetched foods from database:', foods);
+        const userId = parseInt(req.query.user_id);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'user_id must be a valid integer' });
+        }
 
-        const foodMacros = await db('food_macros').select('*');
-        console.log('Fetched food macros from database:', foodMacros);
+        const foods = await db('foods')
+            .where({ user_id: userId })
+            .select('*');
+        console.log('Fetched foods for user_id:', userId, foods);
+
+        const foodMacros = await db('food_macros')
+            .whereIn('food_id', foods.map(food => food.id))
+            .select('*');
+        console.log('Fetched food macros for user_id:', userId, foodMacros);
 
         const foodsWithMacros = foods.map(food => {
             const macros = foodMacros.filter(m => m.food_id === food.id);
             return { ...food, macros };
         });
 
-        console.log('Foods with macros to return:', foodsWithMacros);
+        console.log('Foods with macros to return for user_id:', userId, foodsWithMacros);
         res.json(foodsWithMacros);
     } catch (err) {
         console.error('Error fetching foods:', err.message, err.stack);
-        res.status(500).json({ error: 'Failed to fetch foods' });
+        res.status(500).json({ error: 'Failed to fetch foods', details: err.message });
     }
 });
 
@@ -218,9 +232,11 @@ router.get('/:user_id/:date', async (req, res) => {
 
         // Get all food logs for the user and date
         const foodLogs = await db('food_logs')
-            .where('user_id', parsedUserId)
-            .where('log_date', date)
-            .select('id');
+            .join('foods', 'food_logs.food_id', 'foods.id')
+            .where('food_logs.user_id', parsedUserId)
+            .andWhere('food_logs.log_date', date)
+            .andWhere('foods.user_id', parsedUserId) // Filter foods by user_id
+            .select('food_logs.id');
 
         console.log('Food log IDs for user', parsedUserId, 'on', date, ':', foodLogs);
 
@@ -276,7 +292,8 @@ router.get('/detailed/:user_id/:date', async (req, res) => {
                 'food_logs.log_date'
             )
             .where('food_logs.user_id', parsedUserId)
-            .andWhere('food_logs.log_date', date);
+            .andWhere('food_logs.log_date', date)
+            .andWhere('foods.user_id', parsedUserId); // Filter foods by user_id
         console.log('Detailed logs result:', detailedLogs);
         res.json(detailedLogs);
     } catch (err) {
@@ -312,6 +329,7 @@ router.get('/range/:user_id/:start_date/:end_date', async (req, res) => {
             )
             .where('food_logs.user_id', parsedUserId)
             .whereBetween('food_logs.log_date', [start_date, end_date])
+            .andWhere('foods.user_id', parsedUserId) // Filter foods by user_id
             .orderBy('food_logs.log_date');
         res.json(foodLogs);
     } catch (err) {
@@ -323,9 +341,22 @@ router.get('/range/:user_id/:start_date/:end_date', async (req, res) => {
 // Log food consumption
 router.post('/food_logs', async (req, res) => {
     const { user_id, food_id, servings, log_date } = req.body;
+    const parsedUserId = parseInt(user_id);
+    if (isNaN(parsedUserId) || !food_id || !servings || !log_date) {
+        return res.status(400).json({ error: 'user_id, food_id, servings, and log_date are required' });
+    }
+
     try {
         const db = req.app.get('db');
         console.log('Received POST data:', { user_id, food_id, servings, log_date });
+
+        // Verify the food belongs to the user
+        const food = await db('foods')
+            .where({ id: food_id, user_id: parsedUserId })
+            .first();
+        if (!food) {
+            return res.status(404).json({ error: 'Food not found or not owned by user' });
+        }
 
         // Fetch the food's macros dynamically
         const foodMacros = await db('food_macros')
@@ -341,7 +372,7 @@ router.post('/food_logs', async (req, res) => {
         // Insert the base log entry
         const [newLog] = await db('food_logs')
             .insert({
-                user_id,
+                user_id: parsedUserId,
                 food_id,
                 servings,
                 log_date,
@@ -370,7 +401,7 @@ router.post('/food_logs', async (req, res) => {
         res.status(201).json(fullLog);
     } catch (err) {
         console.error('Error logging food:', err.message, err.stack);
-        res.status(500).json({ error: 'Failed to log food' });
+        res.status(500).json({ error: 'Failed to log food', details: err.message });
     }
 });
 

@@ -8,6 +8,11 @@ import { jwtDecode } from 'jwt-decode';
 import axiosInstance from '../utils/axiosConfig';
 import '../App.css';
 
+interface ErrorResponse {
+    error?: string;
+    details?: string;
+}
+
 interface DailySummary {
     [key: string]: number | undefined;
     total_calories?: number;
@@ -58,6 +63,8 @@ const Dashboard: React.FC = () => {
         const day = String(today.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     });
+    const [success, setSuccess] = useState<string>('');
+    const [loading, setLoading] = useState<boolean>(false);
     const [showLogModal, setShowLogModal] = useState(false);
     const [showAddFoodModal, setShowAddFoodModal] = useState(false);
     const [foods, setFoods] = useState<Food[]>([]);
@@ -93,22 +100,27 @@ const Dashboard: React.FC = () => {
 
     const fetchDailySummary = useCallback(async () => {
         if (!userId) return;
+        setLoading(true);
         try {
             const url = `/api/food_logs/${userId}/${logDate}`;
             console.log('Fetching daily summary from:', url);
             const res = await axiosInstance.get<DailySummary>(url);
-            console.log('Raw Daily Summary Response:', res.data); // Log the raw response
+            console.log('Raw Daily Summary Response:', res.data);
             const parsedSummary = res.data || {};
             setDailySummary(parsedSummary);
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Fetch Summary Error:', error.response?.data || error.message);
             setDailySummary(null);
+            setError(error.response?.data?.error || 'Failed to fetch daily summary.');
+        } finally {
+            setLoading(false);
         }
     }, [userId, logDate]);
 
     const fetchGoals = useCallback(async () => {
         if (!userId) return;
+        setLoading(true);
         try {
             const res = await axiosInstance.get<MacroGoal[]>(`/api/food_logs/goals/${userId}`);
             console.log('Goals Response:', res.data);
@@ -120,24 +132,35 @@ const Dashboard: React.FC = () => {
             }, {} as { [key: string]: number });
             setCustomFoodMacros(initialMacros);
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Fetch Goals Error:', error.response?.data || error.message);
             setGoals([]);
+            setError(error.response?.data?.error || 'Failed to fetch goals.');
+        } finally {
+            setLoading(false);
         }
     }, [userId]);
 
     const fetchFoods = useCallback(async () => {
+        if (!userId) return;
+        setLoading(true);
         try {
-            const res = await axiosInstance.get<Food[]>('/api/food_logs/foods'); // Updated endpoint
-            console.log('Fetched foods:', res.data); // Debug log
+            const res = await axiosInstance.get<Food[]>('/api/food_logs/foods', {
+                params: { user_id: userId },
+            });
+            console.log('Fetched foods:', res.data);
             setFoods(res.data);
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Fetch Foods Error:', error.response?.data || error.message);
+            setError(error.response?.data?.error || 'Failed to fetch foods.');
+        } finally {
+            setLoading(false);
         }
-    }, []);
+    }, [userId]);
 
     const fetchCategories = useCallback(async () => {
+        setLoading(true);
         try {
             const res = await axiosInstance.get<Category[]>('/api/categories');
             console.log('Fetched categories:', res.data);
@@ -145,6 +168,9 @@ const Dashboard: React.FC = () => {
         } catch (err) {
             console.error('Fetch Categories Error:', err);
             setCategories([]);
+            setError('Failed to fetch categories.');
+        } finally {
+            setLoading(false);
         }
     }, []);
 
@@ -163,10 +189,11 @@ const Dashboard: React.FC = () => {
                 const res = await axiosInstance.post<Category>('/api/categories', { name: newCategory });
                 setCategories(prev => [...prev, res.data]);
                 setNewCategory('');
+                setSuccess('Category added successfully!');
             } catch (err) {
-                const error = err as AxiosError;
+                const error = err as AxiosError<ErrorResponse>;
                 console.error('Add Category Error:', error.response?.data || error.message);
-                alert('Failed to add category.');
+                setError(error.response?.data?.error || 'Failed to add category.');
             }
         }
     };
@@ -175,27 +202,29 @@ const Dashboard: React.FC = () => {
         if (editingCategory && editingCategory.name.trim()) {
             try {
                 const res = await axiosInstance.put<Category>(
-                    `api/categories/${editingCategory.id}`,
+                    `/api/categories/${editingCategory.id}`,
                     { name: editingCategory.name }
                 );
-                setCategories(prev => prev.map(c => c.id === editingCategory.id ? res.data : c));
+                setCategories(prev => prev.map(c => (c.id === editingCategory.id ? res.data : c)));
                 setEditingCategory(null);
+                setSuccess('Category updated successfully!');
             } catch (err) {
-                const error = err as AxiosError;
+                const error = err as AxiosError<ErrorResponse>;
                 console.error('Edit Category Error:', error.response?.data || error.message);
-                alert('Failed to edit category.');
+                setError(error.response?.data?.error || 'Failed to edit category.');
             }
         }
     };
 
     const deleteCategory = async (id: number) => {
         try {
-            await axiosInstance.delete(`api/categories/${id}`);
+            await axiosInstance.delete(`/api/categories/${id}`);
             setCategories(prev => prev.filter(c => c.id !== id));
+            setSuccess('Category deleted successfully!');
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Delete Category Error:', error.response?.data || error.message);
-            alert('Failed to delete category.');
+            setError(error.response?.data?.error || 'Failed to delete category.');
         }
     };
 
@@ -210,15 +239,17 @@ const Dashboard: React.FC = () => {
             console.log('Log Weight Response:', response.data);
             setShowLogWeightModal(false);
             setWeight(0);
+            setSuccess('Weight logged successfully!');
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Log Weight Error:', error.response?.data || error.message);
-            alert('Failed to log weight');
+            setError(error.response?.data?.error || 'Failed to log weight.');
         }
     };
 
     const addCustomFood = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!userId) return;
         const formData = new FormData(e.currentTarget);
         const foodName = formData.get('name') as string;
         const servingSize = formData.get('serving_size') as string;
@@ -233,31 +264,36 @@ const Dashboard: React.FC = () => {
                 }));
 
                 const res = await axiosInstance.post<Food>('/api/food_logs/foods', {
+                    user_id: userId,
                     name: foodName,
                     serving_size: servingSize,
                     category,
                     macros,
                 });
-                console.log('Add Food Response:', res.data); // Debug log
+                console.log('Add Food Response:', res.data);
                 const newFood = { ...res.data, custom: true };
-                setFoods(prevFoods => [...prevFoods, newFood]); // Immediately update state with new food
-                await fetchFoods(); // Re-fetch the full list to ensure consistency
+                setFoods(prevFoods => [...prevFoods, newFood]);
+                await fetchFoods(); // Re-fetch to ensure consistency
                 setShowAddFoodModal(false);
                 setCustomFoodMacros(goals.reduce((acc, goal) => {
                     acc[goal.macro_name] = 0;
                     return acc;
                 }, {} as { [key: string]: number }));
+                setSuccess('Food added successfully!');
             } catch (err) {
-                const error = err as AxiosError;
+                const error = err as AxiosError<ErrorResponse>;
                 console.error('Add Food Error:', error.message, error.response?.data);
-                alert('Failed to add food');
+                setError(error.response?.data?.error || 'Failed to add food.');
             }
+        } else {
+            setError('Please fill in all required fields.');
         }
     };
 
     const logFood = async () => {
         if (!selectedFood || !userId) {
             console.warn('No selected food or userId:', { selectedFood, userId });
+            setError('Please select a food to log.');
             return;
         }
         try {
@@ -267,23 +303,24 @@ const Dashboard: React.FC = () => {
                 servings,
                 log_date: logDate,
             });
-            console.log('Log Food Response:', response.data); // Debug log
+            console.log('Log Food Response:', response.data);
             await fetchDailySummary();
-            await fetchFoods(); // Refresh foods list after logging
+            await fetchFoods();
             setShowLogModal(false);
             setSelectedFood(null);
             setServings(1);
+            setSuccess('Food logged successfully!');
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Log Food Error:', error.response?.data || error.message);
-            alert('Failed to log food');
+            setError(error.response?.data?.error || 'Failed to log food.');
         }
     };
 
     const handleMacroChange = (macroName: string, value: number) => {
         setCustomFoodMacros(prev => ({
             ...prev,
-            [macroName]: value,
+            [macroName]: Math.max(0, value), // Prevent negative values
         }));
     };
 
@@ -327,6 +364,19 @@ const Dashboard: React.FC = () => {
     return (
         <div>
             <h1>MacroZapp</h1>
+            {loading && <div className="loading">Loading...</div>}
+            {success && (
+                <div className="success-message">
+                    {success}
+                    <button onClick={() => setSuccess('')}>Dismiss</button>
+                </div>
+            )}
+            {error && (
+                <div className="error-message">
+                    {error}
+                    <button onClick={() => setError('')}>Dismiss</button>
+                </div>
+            )}
             <div className="card">
                 <h2>Dashboard</h2>
                 <div className="form-grid">
@@ -412,6 +462,7 @@ const Dashboard: React.FC = () => {
                                     value={servings}
                                     onChange={e => setServings(parseFloat(e.target.value) || 0)}
                                     step="0.1"
+                                    min="0.1"
                                 />
                             </label>
                             <div>
@@ -446,6 +497,7 @@ const Dashboard: React.FC = () => {
                                     value={weight}
                                     onChange={e => setWeight(parseFloat(e.target.value) || 0)}
                                     step="0.1"
+                                    min="0"
                                 />
                             </label>
                             <div>
@@ -480,9 +532,15 @@ const Dashboard: React.FC = () => {
                                     <input
                                         type="number"
                                         name={`macro_${goal.macro_name}`}
-                                        step={goal.unit === 'kcal' || goal.unit === 'mg' ? '1' : '0.1'}
+                                        step="0.1" // Allow decimal values for all macros
                                         value={customFoodMacros[goal.macro_name] || 0}
                                         onChange={e => handleMacroChange(goal.macro_name, parseFloat(e.target.value) || 0)}
+                                        min="0"
+                                        onFocus={(e) => {
+                                            if (e.target.value === '0') {
+                                                e.target.value = ''; // Clear the 0 on focus
+                                            }
+                                        }}
                                     />
                                 </label>
                             ))}

@@ -64,6 +64,41 @@ router.post('/', async (req, res) => {
 
         console.log('DEBUG: Inserted default macro goals for user_id:', newUser.id);
 
+        // Copy foods from master_foods for the new user
+        const masterFoods = await db('master_foods').select('*');
+        if (masterFoods.length > 0) {
+            const newFoods = await db('foods')
+                .insert(
+                    masterFoods.map(food => ({
+                        user_id: newUser.id,
+                        name: food.name,
+                        serving_size: food.serving_size,
+                        category: food.category,
+                    }))
+                )
+                .returning(['id', 'name', 'serving_size', 'category']);
+
+            console.log('DEBUG: Copied master foods for user_id:', newUser.id, newFoods);
+
+            // Copy macros for each new food
+            for (const food of newFoods) {
+                const masterMacros = await db('master_food_macros')
+                    .where({ food_id: masterFoods.find(mf => mf.name === food.name && mf.serving_size === food.serving_size).id });
+                if (masterMacros.length > 0) {
+                    await db('food_macros').insert(
+                        masterMacros.map(macro => ({
+                            food_id: food.id,
+                            macro_name: macro.macro_name,
+                            value: macro.value,
+                            unit: macro.unit,
+                        }))
+                    );
+                }
+            }
+
+            console.log('DEBUG: Copied master food macros for user_id:', newUser.id);
+        }
+
         const token = jwt.sign(
             { id: newUser.id, username: newUser.username },
             process.env.JWT_SECRET || 'your_secret_key',

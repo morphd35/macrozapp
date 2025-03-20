@@ -59,31 +59,44 @@ router.post('/goals', async (req, res) => {
 });
 
 // Add custom food
+// Add custom food
 router.post('/foods', async (req, res) => {
-    const { name, serving_size, category, macros } = req.body;
+    const { user_id, name, serving_size, category, macros } = req.body;
 
-    if (!name || !serving_size || !category || !macros || !Array.isArray(macros)) {
-        return res.status(400).json({ error: 'name, serving_size, category, and macros are required' });
+    if (!user_id || !name || !serving_size || !category || !macros || !Array.isArray(macros)) {
+        return res.status(400).json({ error: 'user_id, name, serving_size, category, and macros are required' });
     }
+
+    const parsedUserId = parseInt(user_id);
+    if (isNaN(parsedUserId)) {
+        return res.status(400).json({ error: 'user_id must be a valid integer' });
+    }
+    console.log('Parsed user_id for insert:', parsedUserId);
 
     try {
         const db = req.app.get('db');
-        // Check if a food with the same name already exists
-        const existingFood = await db('foods').where('name', name).first();
+        // Check if a food with the same name already exists for this user
+        const existingFood = await db('foods')
+            .where({ user_id: parsedUserId, name })
+            .first();
         if (existingFood) {
-            return res.status(400).json({ error: 'A food with this name already exists. Please use a unique name.' });
+            return res.status(400).json({ error: 'A food with this name already exists for this user. Please use a unique name.' });
         }
 
-        // Insert the food (only base details)
-        const [newFood] = await db('foods')
-            .insert({
-                name,
-                serving_size,
-                category,
-            })
-            .returning(['id']);
+        const insertPayload = {
+            user_id: Number(parsedUserId), // Explicitly convert to number
+            name,
+            serving_size,
+            category,
+        };
+        console.log('Insert payload:', insertPayload); // Add this log
 
-        console.log('Inserted food:', newFood);
+        // Insert the food with user_id
+        const [newFood] = await db('foods')
+            .insert(insertPayload)
+            .returning(['id', 'user_id', 'name', 'serving_size', 'category']);
+
+        console.log('Inserted food for user_id:', parsedUserId, newFood);
 
         // Insert all macros into food_macros
         const macroEntries = macros.map(macro => ({
@@ -95,51 +108,67 @@ router.post('/foods', async (req, res) => {
 
         await db('food_macros').insert(macroEntries);
 
-        console.log('Inserted food macros:', macroEntries);
+        console.log('Inserted food macros for food_id:', newFood.id, macroEntries);
 
         const insertedMacros = await db('food_macros').where('food_id', newFood.id);
         res.status(201).json({ ...newFood, macros: insertedMacros, custom: true });
     } catch (err) {
         console.error('Error adding custom food:', err.message, err.stack);
         if (err.code === '23505') { // PostgreSQL duplicate key error
-            res.status(400).json({ error: 'A food with this name already exists. Please use a unique name.' });
+            res.status(400).json({ error: 'A food with this name already exists for this user. Please use a unique name.' });
         } else {
-            res.status(500).json({ error: 'Failed to add food' });
+            res.status(500).json({ error: 'Failed to add food', details: err.message });
         }
     }
 });
 
 // Get all foods with their macros
+// Get all foods with their macros for a specific user
 router.get('/foods', async (req, res) => {
     try {
         const db = req.app.get('db');
-        const foods = await db('foods').select('*');
-        console.log('Fetched foods from database:', foods);
+        const userId = parseInt(req.query.user_id);
+        if (isNaN(userId)) {
+            return res.status(400).json({ error: 'user_id must be a valid integer' });
+        }
 
-        const foodMacros = await db('food_macros').select('*');
-        console.log('Fetched food macros from database:', foodMacros);
+        const foods = await db('foods')
+            .where({ user_id: userId })
+            .select('*');
+        console.log('Fetched foods for user_id:', userId, foods);
+
+        const foodMacros = await db('food_macros')
+            .whereIn('food_id', foods.map(food => food.id))
+            .select('*');
+        console.log('Fetched food macros for user_id:', userId, foodMacros);
 
         const foodsWithMacros = foods.map(food => {
             const macros = foodMacros.filter(m => m.food_id === food.id);
             return { ...food, macros };
         });
 
-        console.log('Foods with macros to return:', foodsWithMacros);
+        console.log('Foods with macros to return for user_id:', userId, foodsWithMacros);
         res.json(foodsWithMacros);
     } catch (err) {
         console.error('Error fetching foods:', err.message, err.stack);
-        res.status(500).json({ error: 'Failed to fetch foods' });
+        res.status(500).json({ error: 'Failed to fetch foods', details: err.message });
     }
 });
 
 // Update a food item
-router.put('/:id', async (req, res) => {
+// Update a food item
+router.put('/foods/:id', async (req, res) => {
     const { id } = req.params;
-    const { name, serving_size, category, macros } = req.body;
+    const { user_id, name, serving_size, category, macros } = req.body;
     const parsedId = parseInt(id);
+    const parsedUserId = parseInt(user_id);
 
     if (isNaN(parsedId)) {
         return res.status(400).json({ error: 'Food ID must be a valid integer' });
+    }
+
+    if (isNaN(parsedUserId)) {
+        return res.status(400).json({ error: 'user_id must be a valid integer' });
     }
 
     if (!name || !serving_size || !category || !macros || !Array.isArray(macros)) {
@@ -148,26 +177,43 @@ router.put('/:id', async (req, res) => {
 
     try {
         const db = req.app.get('db');
-        // Update the base food details
+        console.log('Checking for existing food with id:', parsedId, 'and user_id:', parsedUserId);
+        const query = db('foods')
+            .where({ id: parsedId, user_id: parsedUserId })
+            .first();
+        console.log('Raw query:', query.toSQL().toNative()); // Log the raw SQL query
+        const existingFood = await query;
+        console.log('Existing food:', existingFood);
+        if (!existingFood) {
+            return res.status(404).json({ error: 'Food not found or not owned by user' });
+        }
+
+        const duplicateFood = await db('foods')
+            .where({ user_id: parsedUserId, name })
+            .whereNot('id', parsedId)
+            .first();
+        if (duplicateFood) {
+            return res.status(400).json({ error: 'A food with this name already exists for this user' });
+        }
+
+        console.log('Updating food with id:', parsedId, 'and user_id:', parsedUserId);
         const [updatedFood] = await db('foods')
-            .where({ id: parsedId })
+            .where({ id: parsedId, user_id: parsedUserId })
             .update({
                 name,
                 serving_size,
                 category,
             })
             .returning('*');
-
+        console.log('Updated food:', updatedFood);
         if (!updatedFood) {
             return res.status(404).json({ error: 'Food not found' });
         }
 
         console.log('Updated food:', updatedFood);
 
-        // Delete existing macros for this food
         await db('food_macros').where('food_id', parsedId).del();
 
-        // Insert updated macros
         const macroEntries = macros.map(macro => ({
             food_id: parsedId,
             macro_name: macro.macro_name.toLowerCase(),
@@ -179,43 +225,65 @@ router.put('/:id', async (req, res) => {
 
         console.log('Updated food macros:', macroEntries);
 
-        // Fetch the updated macros to return
         const updatedMacros = await db('food_macros').where('food_id', parsedId);
         res.json({ ...updatedFood, macros: updatedMacros });
     } catch (err) {
         console.error('Error updating food:', err.message, err.stack);
         if (err.code === '23505') {
-            res.status(400).json({ error: 'A food with this name already exists' });
+            res.status(400).json({ error: 'A food with this name already exists for this user' });
         } else {
-            res.status(500).json({ error: 'Failed to update food' });
+            res.status(500).json({ error: 'Failed to update food', details: err.message });
         }
     }
 });
 
 // Delete a food item
-router.delete('/:id', async (req, res) => {
+// Delete a food item
+router.delete('/foods/:id', async (req, res) => {
     const { id } = req.params;
+    const userId = parseInt(req.query.user_id);
     const parsedId = parseInt(id);
 
+    console.log('Attempting to delete food with id:', parsedId, 'for user_id:', userId);
+
     if (isNaN(parsedId)) {
+        console.log('Invalid food ID:', id);
         return res.status(400).json({ error: 'Food ID must be a valid integer' });
+    }
+
+    if (isNaN(userId)) {
+        console.log('Invalid user_id:', req.query.user_id);
+        return res.status(400).json({ error: 'user_id must be a valid integer' });
     }
 
     try {
         const db = req.app.get('db');
-        // Delete associated macros first
+        console.log('Checking for existing food with id:', parsedId, 'and user_id:', userId);
+        const query = db('foods')
+            .where({ id: parsedId, user_id: userId })
+            .first();
+        console.log('Raw query:', query.toSQL().toNative()); // Log the raw SQL query
+        const existingFood = await query;
+        console.log('Existing food:', existingFood);
+        if (!existingFood) {
+            return res.status(404).json({ error: 'Food not found or not owned by user' });
+        }
+
         await db('food_macros').where('food_id', parsedId).del();
 
-        // Delete the food item
-        const deletedCount = await db('foods').where('id', parsedId).del();
+        console.log('Deleting food with id:', parsedId, 'and user_id:', userId);
+        const deletedCount = await db('foods')
+            .where({ id: parsedId, user_id: userId })
+            .del();
+        console.log('Deleted count:', deletedCount);
         if (deletedCount === 0) {
             return res.status(404).json({ error: 'Food not found' });
         }
 
-        res.status(204).send(); // No content on successful deletion
+        res.status(204).send();
     } catch (err) {
         console.error('Error deleting food:', err.message, err.stack);
-        res.status(500).json({ error: 'Failed to delete food' });
+        res.status(500).json({ error: 'Failed to delete food', details: err.message });
     }
 });
 

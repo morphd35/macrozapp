@@ -58,6 +58,9 @@ const FoodMaintenance: React.FC = () => {
     const [foodToDelete, setFoodToDelete] = useState<number | null>(null);
     const [expandedRows, setExpandedRows] = useState<number[]>([]);
     const navigate = useNavigate();
+    const [loading, setLoading] = useState<boolean>(false);
+    const [success, setSuccess] = useState<string>('');
+    const [error, setError] = useState<string>('');
 
     useEffect(() => {
         fetchFoods();
@@ -67,51 +70,80 @@ const FoodMaintenance: React.FC = () => {
 
     const fetchFoods = async () => {
         try {
-            const response = await axiosInstance.get<Food[]>('/api/food_logs/foods');
+            const token = localStorage.getItem('token');
+            if (!token) {
+                setError('User not authenticated.');
+                return;
+            }
+            const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
+            setLoading(true);
+            const response = await axiosInstance.get<Food[]>('/api/foods/foods', {
+                params: { user_id: decoded.id },
+            });
             console.log('Fetched foods:', response.data);
             setFoods(response.data);
         } catch (err) {
-            console.error('Fetch Foods Error:', err);
+            const error = err as AxiosError<ErrorResponse>;
+            console.error('Fetch Foods Error:', error.response?.data || error.message);
             setFoods([]);
+            setError(error.response?.data?.error || 'Failed to fetch foods.');
+        } finally {
+            setLoading(false);
         }
     };
 
     const fetchCategories = async () => {
         try {
+            setLoading(true);
             const response = await axiosInstance.get<Category[]>('/api/categories');
             console.log('Fetched categories:', response.data);
             setCategories(response.data);
         } catch (err) {
-            console.error('Fetch Categories Error:', err);
+            const error = err as AxiosError<ErrorResponse>;
+            console.error('Fetch Categories Error:', error.response?.data || error.message);
             setCategories([]);
+            setError(error.response?.data?.error || 'Failed to fetch categories.');
+        } finally {
+            setLoading(false);
         }
     };
 
     const fetchGoals = async () => {
         try {
             const token = localStorage.getItem('token');
-            if (token) {
-                const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
-                const response = await axiosInstance.get<MacroGoal[]>(`api/food_logs/goals/${decoded.id}`);
-                console.log('Fetched goals:', response.data);
-                setGoals(response.data);
+            if (!token) {
+                setError('User not authenticated.');
+                return;
             }
+            const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
+            setLoading(true);
+            const response = await axiosInstance.get<MacroGoal[]>(`/api/food_logs/goals/${decoded.id}`);
+            console.log('Fetched goals:', response.data);
+            setGoals(response.data);
         } catch (err) {
-            console.error('Fetch Goals Error:', err);
+            const error = err as AxiosError<ErrorResponse>;
+            console.error('Fetch Goals Error:', error.response?.data || error.message);
             setGoals([]);
+            setError(error.response?.data?.error || 'Failed to fetch goals.');
+        } finally {
+            setLoading(false);
         }
     };
 
     const addCategory = async () => {
         if (newCategory.trim()) {
             try {
+                setLoading(true);
                 const response = await axiosInstance.post<Category>('/api/categories', { name: newCategory });
                 setCategories(prev => [...prev, response.data]);
                 setNewCategory('');
+                setSuccess('Category added successfully!');
             } catch (err) {
-                const error = err as AxiosError;
+                const error = err as AxiosError<ErrorResponse>;
                 console.error('Add Category Error:', error.response?.data || error.message);
-                alert('Failed to add category.');
+                setError(error.response?.data?.error || 'Failed to add category.');
+            } finally {
+                setLoading(false);
             }
         }
     };
@@ -119,41 +151,56 @@ const FoodMaintenance: React.FC = () => {
     const editCategory = async () => {
         if (editingCategory && editingCategory.name.trim()) {
             try {
-                const response = await axiosInstance.put<Category>(`api/categories/${editingCategory.id}`, { name: editingCategory.name });
+                setLoading(true);
+                const response = await axiosInstance.put<Category>(`/api/categories/${editingCategory.id}`, { name: editingCategory.name });
                 setCategories(prev => prev.map(c => c.id === editingCategory.id ? response.data : c));
                 setEditingCategory(null);
+                setSuccess('Category updated successfully!');
             } catch (err) {
-                const error = err as AxiosError;
+                const error = err as AxiosError<ErrorResponse>;
                 console.error('Edit Category Error:', error.response?.data || error.message);
-                alert('Failed to edit category.');
+                setError(error.response?.data?.error || 'Failed to edit category.');
+            } finally {
+                setLoading(false);
             }
         }
     };
 
     const deleteCategory = async (id: number) => {
         try {
-            const response = await axiosInstance.delete(`api/categories/${id}`);
+            setLoading(true);
+            await axiosInstance.delete(`/api/categories/${id}`);
             setCategories(prev => prev.filter(c => c.id !== id));
+            setSuccess('Category deleted successfully!');
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Delete Category Error:', error.response?.data || error.message);
-            alert('Failed to delete category.');
+            setError(error.response?.data?.error || 'Failed to delete category.');
+        } finally {
+            setLoading(false);
         }
     };
 
     const addFood = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('User not authenticated.');
+            return;
+        }
+        const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
         const formData = new FormData(e.currentTarget);
         const macros: FoodMacro[] = goals.map(goal => {
             const value = formData.get(goal.macro_name) as string;
             return {
                 macro_name: goal.macro_name.toLowerCase(),
-                value: value ? parseFloat(value) || 0 : 0,
+                value: value ? Math.max(0, parseFloat(value)) : 0, // Prevent negative values
                 unit: goal.unit,
             };
         });
 
         const foodData = {
+            user_id: decoded.id,
             name: formData.get('name') as string,
             serving_size: formData.get('serving_size') as string,
             category: formData.get('category') as string,
@@ -162,33 +209,46 @@ const FoodMaintenance: React.FC = () => {
 
         if (foodData.name && foodData.serving_size && foodData.category) {
             try {
-                const response = await axiosInstance.post<Food>('/api/food_logs/foods', foodData);
+                setLoading(true);
+                const response = await axiosInstance.post<Food>('/api/foods/foods', foodData);
                 console.log('Add Food Response:', response.data);
                 setFoods(prevFoods => [...prevFoods, response.data]);
                 await fetchFoods();
                 setShowAddModal(false);
+                setSuccess('Food added successfully!');
             } catch (err) {
                 const error = err as AxiosError<ErrorResponse>;
                 console.error('Add Food Error:', error.response?.data || error.message);
-                alert(error.response?.data?.error || 'Failed to add food. Check console for details.');
+                setError(error.response?.data?.error || 'Failed to add food.');
+            } finally {
+                setLoading(false);
             }
+        } else {
+            setError('Please fill in all required fields.');
         }
     };
 
     const editFood = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         if (!editingFood) return;
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('User not authenticated.');
+            return;
+        }
+        const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
         const formData = new FormData(e.currentTarget);
         const macros: FoodMacro[] = goals.map(goal => {
             const value = formData.get(goal.macro_name) as string;
             return {
                 macro_name: goal.macro_name.toLowerCase(),
-                value: value ? parseFloat(value) || 0 : 0,
+                value: value ? Math.max(0, parseFloat(value)) : 0, // Prevent negative values
                 unit: goal.unit,
             };
         });
 
         const updatedFood = {
+            user_id: decoded.id,
             name: formData.get('name') as string,
             serving_size: formData.get('serving_size') as string,
             category: formData.get('category') as string,
@@ -196,15 +256,20 @@ const FoodMaintenance: React.FC = () => {
         };
 
         try {
-            const response = await axiosInstance.put<Food>(`api/foods/${editingFood.id}`, updatedFood);
+            setLoading(true);
+            console.log('Editing food with id:', editingFood.id, 'for user_id:', decoded.id);
+            const response = await axiosInstance.put<Food>(`/api/foods/foods/${editingFood.id}`, updatedFood);
             setFoods(prevFoods => prevFoods.map(f => (f.id === editingFood.id ? response.data : f)));
             await fetchFoods();
             setShowEditModal(false);
             setEditingFood(null);
+            setSuccess('Food updated successfully!');
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Edit Food Error:', error.response?.data || error.message);
-            alert('Failed to edit food');
+            setError(error.response?.data?.error || 'Failed to edit food.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -215,16 +280,29 @@ const FoodMaintenance: React.FC = () => {
 
     const deleteFood = async () => {
         if (foodToDelete === null) return;
+        const token = localStorage.getItem('token');
+        if (!token) {
+            setError('User not authenticated.');
+            return;
+        }
+        const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
         try {
-            const response = await axiosInstance.delete(`api/foods/${foodToDelete}`);
+            setLoading(true);
+            console.log('Deleting food with id:', foodToDelete, 'for user_id:', decoded.id); // Add this log
+            await axiosInstance.delete(`/api/foods/foods/${foodToDelete}`, {
+                params: { user_id: decoded.id },
+            });
             setFoods(prevFoods => prevFoods.filter(f => f.id !== foodToDelete));
             await fetchFoods();
             setShowDeleteModal(false);
             setFoodToDelete(null);
+            setSuccess('Food deleted successfully!');
         } catch (err) {
-            const error = err as AxiosError;
+            const error = err as AxiosError<ErrorResponse>;
             console.error('Delete Food Error:', error.response?.data || error.message);
-            alert('Failed to delete food');
+            setError(error.response?.data?.error || 'Failed to delete food.');
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -271,13 +349,20 @@ const FoodMaintenance: React.FC = () => {
                     </div>
                 )}
             </div>
-            {/* <div className="desktop-nav">
-                <button onClick={() => navigate('/dashboard')}>Dashboard</button>
-                <button onClick={() => navigate('/food-maintenance')}>Food Maintenance</button>
-                <button onClick={() => navigate('/logs')}>Logs</button>
-                <button onClick={handleLogout}>Logout</button>
-            </div> */}
             <h1>Food Maintenance</h1>
+            {loading && <div className="loading">Loading...</div>}
+            {success && (
+                <div className="success-message">
+                    {success}
+                    <button onClick={() => setSuccess('')}>Dismiss</button>
+                </div>
+            )}
+            {error && (
+                <div className="error-message">
+                    {error}
+                    <button onClick={() => setError('')}>Dismiss</button>
+                </div>
+            )}
             <div className="card-food-maintenance">
                 <button className="button-with-icon" onClick={() => setShowAddModal(true)}>
                     Add New Food
@@ -384,15 +469,22 @@ const FoodMaintenance: React.FC = () => {
                                 <input type="text" name="serving_size" required />
                             </label>
                             {goals.map(goal => (
-                                <label key={goal.macro_name}>
-                                    {goal.macro_name.charAt(0).toUpperCase() + goal.macro_name.slice(1)} ({goal.unit})
+                                <div key={goal.macro_name}>
+                                    <label>{goal.macro_name} ({goal.unit}):</label>
                                     <input
                                         type="number"
                                         name={goal.macro_name}
-                                        step={goal.unit === 'kcal' || goal.unit === 'mg' ? '1' : '0.1'}
+                                        min="0"
+                                        step="0.1" // Allow decimal values with 1 decimal place
                                         defaultValue="0"
+                                        required
+                                        onFocus={(e) => {
+                                            if (e.target.value === '0') {
+                                                e.target.value = '';
+                                            }
+                                        }}
                                     />
-                                </label>
+                                </div>
                             ))}
                             <label>
                                 Category
@@ -429,17 +521,27 @@ const FoodMaintenance: React.FC = () => {
                                 Serving Size
                                 <input type="text" name="serving_size" defaultValue={editingFood.serving_size} required />
                             </label>
-                            {goals.map(goal => (
-                                <label key={goal.macro_name}>
-                                    {goal.macro_name.charAt(0).toUpperCase() + goal.macro_name.slice(1)} ({goal.unit})
-                                    <input
-                                        type="number"
-                                        name={goal.macro_name}
-                                        step={goal.unit === 'kcal' || goal.unit === 'mg' ? '1' : '0.1'}
-                                        defaultValue={getMacroValue(editingFood, goal.macro_name) || '0'}
-                                    />
-                                </label>
-                            ))}
+                            {goals.map(goal => {
+                                const macro = editingFood.macros.find(m => m.macro_name.toLowerCase() === goal.macro_name.toLowerCase());
+                                return (
+                                    <div key={goal.macro_name}>
+                                        <label>{goal.macro_name} ({goal.unit}):</label>
+                                        <input
+                                            type="number"
+                                            name={goal.macro_name}
+                                            min="0"
+                                            step="0.1" // Allow decimal values
+                                            defaultValue={macro ? macro.value : '0'}
+                                            required
+                                            onFocus={(e) => {
+                                                if (e.target.value === '0') {
+                                                    e.target.value = '';
+                                                }
+                                            }}
+                                        />
+                                    </div>
+                                );
+                            })}
                             <label>
                                 Category
                                 <select name="category" defaultValue={editingFood.category} required>

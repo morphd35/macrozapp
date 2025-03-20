@@ -1373,7 +1373,7 @@ li {
 
 /* Hamburger Icon (hidden by default, shown on mobile) */
 .hamburger-icon {
-  display: none !important;
+  display: none;
   /* Ensure it’s hidden by default */
   flex-direction: column;
   justify-content: space-between;
@@ -1382,11 +1382,12 @@ li {
   cursor: pointer;
   padding: 5px;
   background-color: transparent;
+  z-index: 1001;
   /* Ensure no background interference */
 }
 
 .hamburger-icon span {
-  background-color: #08090a;
+  background-color: #2d3748;
   height: 3px;
   width: 100%;
   border-radius: 2px;
@@ -1444,9 +1445,9 @@ li {
 }
 
 /* Mobile Styles (767px and below) */
-@media (max-width: 991px) {
+@media (max-width: 767px) {
   .nav-bar {
-    padding: 10px;
+    padding: 15px;
     width: 100%;
     display: flex;
     justify-content: space-between;
@@ -1470,6 +1471,25 @@ li {
 
   .nav-links.open+.hamburger-icon span:nth-child(3) {
     transform: rotate(-45deg) translate(5px, -5px);
+  }
+
+  .nav-links.open::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    transition: opacity 0.3s ease-in-out;
+  }
+
+  /* Ensure the backdrop is hidden when the menu is closed */
+  .nav-links::before {
+    opacity: 0;
+    pointer-events: none;
+    /* Prevent interaction when hidden */
   }
 
   /* Navigation Links on Mobile */
@@ -1542,24 +1562,4 @@ li {
     font-size: 1.1rem;
     min-width: 150px;
   }
-}
-
-/* Hamburger Icon (hidden by default, shown on mobile) */
-.hamburger-icon {
-  display: none;
-  /* Hidden on larger screens */
-  flex-direction: column;
-  justify-content: space-between;
-  width: 30px;
-  height: 20px;
-  cursor: pointer;
-  padding: 5px;
-}
-
-.hamburger-icon span {
-  background-color: #2d3748;
-  height: 3px;
-  width: 100%;
-  border-radius: 2px;
-  transition: all 0.3s ease;
 }

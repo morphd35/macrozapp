@@ -10,30 +10,6 @@ body {
   min-height: 100vh;
 }
 
-.app-container {
-  max-width: flex;
-  margin: 0 auto;
-  padding: 10px;
-}
-
-
-/* Navigation bar styling */
-.nav-bar {
-  background-color: rgba(255, 255, 255, 0.95);
-  padding: 10px 10px;
-  border-radius: 8px;
-  width: 90%;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  display: flex;
-  gap: 10px;
-  margin-bottom: 10px;
-  justify-content: center;
-  margin-left: auto;
-  /* Center it like cards */
-  margin-right: auto;
-  /* Center it like cards */
-}
-
 .nav-link {
   color: #2b6cb0;
   font-weight: 600;
@@ -46,19 +22,6 @@ body {
   margin-right: auto;
   /* Center it like cards */
 }
-
-.nav-link:hover {
-  color: #1e40af;
-}
-
-.nav-links .nav-button.active {
-  background-color: #16a085;
-  /* Darker teal for active state */
-  color: white;
-  /* Ensure text remains white */
-  text-overflow: ellipsis;
-}
-
 
 h1 {
   color: #ffffff;
@@ -157,7 +120,7 @@ h2 {
 }
 
 /* Responsive adjustments */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .form-card label.checkbox-label {
     margin: 3px 0;
     /* Slightly reduce margin on mobile */
@@ -193,7 +156,7 @@ h2 {
 }
 
 /* Responsive adjustments */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .form-card .checkbox-container {
     margin: 3px 0;
   }
@@ -242,7 +205,7 @@ h2 {
 }
 
 /* Responsive Adjustments for Form */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .form-card {
     padding: 15px;
   }
@@ -262,7 +225,7 @@ h2 {
 }
 
 /* Responsive adjustments */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   .form-card div.checkbox-container {
     margin: 3px 0;
   }
@@ -360,7 +323,7 @@ button:active {
 }
 
 /* Responsive Adjustments for Buttons */
-@media (max-width: 480px) {
+@media (max-width: 767px) {
   button {
     padding: 8px 15px;
     /* Slightly smaller padding on mobile */
@@ -370,6 +333,7 @@ button:active {
     /* Slightly smaller minimum width on mobile */
   }
 }
+
 
 .button-with-icon:active {
   color: #dd6b20;
@@ -406,6 +370,7 @@ button:active {
   width: 75%;
   margin-left: auto;
   margin-right: auto;
+  place-self: center;
 }
 
 .card:hover {
@@ -1041,38 +1006,6 @@ li {
   }
 }
 
-/* Mobile-first base styles (up to 767px) */
-.app-container {
-  padding: 10px;
-  /* Reduced padding for smaller screens */
-  max-width: 100%;
-  /* Full width on mobile */
-}
-
-.nav-links {
-  padding: 5px 10px;
-  /* Reduced padding for mobile */
-}
-
-.nav-links ul {
-  flex-direction: row;
-  /* Stack vertically on mobile */
-  align-items: center;
-}
-
-.nav-links ul li {
-  margin: 5px 0;
-  /* Vertical spacing on mobile */
-}
-
-.nav-links .nav-button {
-  width: 65%;
-  /* Full width buttons on mobile */
-  justify-content: center;
-  padding: 10px;
-  text-overflow: ellipsis;
-}
-
 .card {
   width: 90%;
   /* Full width on mobile */
@@ -1108,15 +1041,9 @@ li {
 /* Tablet (768px to 1023px) */
 @media (min-width: 768px) {
   .app-container {
-    max-width: 800px;
+    max-width: 100%;
     /* Wider container for tablets */
     padding: 15px;
-  }
-
-  .nav-links ul {
-    flex-direction: row;
-    /* Horizontal navigation on tablets */
-    justify-content: center;
   }
 
   .nav-links ul li {
@@ -1156,8 +1083,6 @@ li {
 /* Desktop (1024px and above) */
 @media (min-width: 1024px) {
   .app-container {
-    max-width: 1200px;
-    /* Full desktop width */
     padding: 20px;
   }
 
@@ -1169,58 +1094,6 @@ li {
   .modal {
     max-width: 500px;
     /* Full-size modal on desktop */
-  }
-}
-
-/* Responsive adjustments for mobile (below 745px) */
-@media (max-width: 745px) {
-  .nav-bar {
-    flex-direction: row;
-    /* Stack buttons vertically */
-    align-items: center;
-    padding: 5px;
-    width: 100%;
-    /* Full width on mobile */
-    border-radius: 0;
-    /* Remove border radius on mobile */
-  }
-
-  .nav-bar button {
-    padding: 6px 12px;
-    /* Smaller padding on mobile */
-    font-size: 0.8rem;
-    /* Smaller text on mobile */
-    width: 70%;
-    /* Full width buttons on mobile */
-    margin: 5px 0;
-    /* Vertical spacing between buttons */
-    text-overflow: ellipsis;
-  }
-}
-
-/* Tablet (768px to 1023px) */
-@media (min-width: 746px) and (max-width: 1023px) {
-  .nav-bar {
-    width: 85%;
-    /* Slightly narrower on tablets */
-  }
-
-  .nav-bar button {
-    padding: 8px 14px;
-    font-size: 1rem;
-  }
-}
-
-/* Desktop (1024px and above) */
-@media (min-width: 1024px) {
-  .nav-bar {
-    width: 76%;
-    /* Original desktop width */
-  }
-
-  .nav-bar button {
-    padding: 8px 16px;
-    font-size: 1.1rem;
   }
 }
 
@@ -1468,4 +1341,225 @@ li {
   color: inherit;
   cursor: pointer;
   text-decoration: underline;
+}
+
+/* Ensure the app container has padding to account for the fixed nav-bar */
+.app-container {
+  padding: 10px;
+  max-width: 100%;
+  overflow-x: visible;
+  padding-top: 70px;
+  /* Adjust based on nav-bar height */
+}
+
+/* Navigation bar styling */
+.nav-bar {
+  background-color: rgba(255, 255, 255, 0.95);
+  padding: 10px;
+  border-radius: 0;
+  /* Remove border radius since it’s at the top */
+  width: 100%;
+  /* Full width for fixed positioning */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  position: fixed;
+  /* Fix the nav-bar at the top */
+  top: 0;
+  left: 0;
+  z-index: 1000;
+  /* Ensure it stays above other content */
+  margin-bottom: 0;
+  /* Remove bottom margin since it’s fixed */
+}
+
+/* Hamburger Icon (hidden by default, shown on mobile) */
+.hamburger-icon {
+  display: none !important;
+  /* Ensure it’s hidden by default */
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 20px;
+  cursor: pointer;
+  padding: 5px;
+  background-color: transparent;
+  /* Ensure no background interference */
+}
+
+.hamburger-icon span {
+  background-color: #08090a;
+  height: 3px;
+  width: 100%;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+/* Navigation Links */
+.nav-links {
+  width: 100%;
+}
+
+.nav-links ul {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  justify-content: center;
+}
+
+.nav-links ul li {
+  margin: 0;
+}
+
+.nav-links .nav-button {
+  background-color: #ed8936;
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.1s ease;
+  padding: 8px 16px;
+  white-space: nowrap;
+  text-decoration: none;
+  /* For <Link> elements */
+  display: inline-block;
+  width: auto;
+  min-width: 120px;
+  text-align: center;
+}
+
+.nav-links .nav-button.active {
+  background-color: #16a085;
+  color: white;
+}
+
+.nav-links .nav-button:hover {
+  background-color: #dd6b20;
+  transform: translateY(-1px);
+}
+
+/* Mobile Styles (767px and below) */
+@media (max-width: 991px) {
+  .nav-bar {
+    padding: 10px;
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    /* Space for hamburger icon */
+    align-items: center;
+  }
+
+  /* Show hamburger icon on mobile */
+  .hamburger-icon {
+    display: flex;
+  }
+
+  /* Transform hamburger icon into "X" when menu is open */
+  .nav-links.open+.hamburger-icon span:nth-child(1) {
+    transform: rotate(45deg) translate(5px, 5px);
+  }
+
+  .nav-links.open+.hamburger-icon span:nth-child(2) {
+    opacity: 0;
+  }
+
+  .nav-links.open+.hamburger-icon span:nth-child(3) {
+    transform: rotate(-45deg) translate(5px, -5px);
+  }
+
+  /* Navigation Links on Mobile */
+  .nav-links {
+    position: absolute;
+    top: 100%;
+    /* Position below the nav-bar */
+    left: 0;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 8px 8px;
+    z-index: 1000;
+    max-height: 0;
+    /* Collapsed by default */
+    overflow: hidden;
+    transition: max-height 0.3s ease-in-out;
+  }
+
+  .nav-links.open {
+    max-height: 300px;
+    /* Adjust based on your menu height */
+  }
+
+  .nav-links ul {
+    flex-direction: column;
+    gap: 0;
+    padding: 10px 0;
+  }
+
+  .nav-links ul li {
+    width: 100%;
+    text-align: center;
+    margin: 5px 0;
+  }
+
+  .nav-links .nav-button {
+    width: 90%;
+    max-width: 300px;
+    padding: 10px;
+    font-size: 1rem;
+    margin: 0 auto;
+    display: block;
+  }
+}
+
+/* Tablet (481px to 1023px) */
+@media (min-width: 481px) and (max-width: 1023px) {
+  .nav-bar {
+    width: 100%;
+    /* Full width since it’s fixed */
+  }
+
+  .nav-links .nav-button {
+    padding: 8px 14px;
+    font-size: 1rem;
+    min-width: 120px;
+  }
+}
+
+/* Desktop (1024px and above) */
+@media (min-width: 1024px) {
+  .nav-bar {
+    width: 100%;
+    /* Full width since it’s fixed */
+  }
+
+  .nav-links .nav-button {
+    padding: 8px 16px;
+    font-size: 1.1rem;
+    min-width: 150px;
+  }
+}
+
+/* Hamburger Icon (hidden by default, shown on mobile) */
+.hamburger-icon {
+  display: none;
+  /* Hidden on larger screens */
+  flex-direction: column;
+  justify-content: space-between;
+  width: 30px;
+  height: 20px;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.hamburger-icon span {
+  background-color: #2d3748;
+  height: 3px;
+  width: 100%;
+  border-radius: 2px;
+  transition: all 0.3s ease;
 }

@@ -1,6 +1,7 @@
 // frontend/src/App.tsx
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, NavLink, Navigate } from 'react-router-dom';
+import NavBar from './NavBar';
 import Dashboard from './pages/Dashboard';
 import Goals from './pages/Goals';
 import FoodMaintenance from './pages/FoodMaintenance';
@@ -17,41 +18,8 @@ import ResetPasswordConfirm from './pages/ResetPasswordConfirm';
 
 const AppLayout = () => (
   <div className="app-container">
-    <nav>
-      <ul className="nav-bar nav-links">
-        <li>
-          <NavLink to="/app/dashboard" className="button-with-icon nav-button nav-link">
-            Dashboard
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/app/goals" className="button-with-icon nav-button nav-link">
-            Goals
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/app/food-maintenance" className="button-with-icon nav-button nav-link">
-            Food Maintenance
-          </NavLink>
-        </li>
-        <li>
-          <NavLink to="/app/logs" className="button-with-icon nav-button nav-link">
-            Logs
-          </NavLink>
-        </li>
-        <li>
-          <button
-            onClick={() => {
-              localStorage.removeItem('token');
-              window.location.href = '/';
-            }}
-            className="button-with-icon nav-button nav-link"
-          >
-            Logout
-          </button>
-        </li>
-      </ul>
-    </nav>
+    {/* Use NavBar component instead of hardcoded nav */}
+    <NavBar />
     <main>
       <Routes>
         <Route path="dashboard" element={<Dashboard />} /> {/* Relative path */}

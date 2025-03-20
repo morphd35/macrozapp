@@ -10,7 +10,6 @@
 .hero {
     position: relative;
     height: 100vh;
-    /* Full viewport height */
     display: flex;
     justify-content: center;
     align-items: center;
@@ -32,6 +31,8 @@
     margin: 0;
     font-weight: 700;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    word-wrap: break-word;
+    /* Ensure long words wrap */
 }
 
 .subtitle {
@@ -40,6 +41,7 @@
     font-weight: 300;
 }
 
+/* CTA Section */
 .cta-buttons {
     margin-top: 30px;
 }
@@ -70,6 +72,67 @@
     /* Bright teal */
     color: white;
 }
+
+/* Learn More Link */
+.learn-more {
+    display: inline-block;
+    margin-top: 20px;
+    color: #ffffff;
+    font-size: 1.1rem;
+    font-weight: 400;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.learn-more:hover {
+    color: #4ecdc4;
+    border-color: #4ecdc4;
+}
+
+/* About Section */
+.about {
+    padding: 60px 20px;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+.about h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+    color: #ff6f61;
+}
+
+.about p {
+    font-size: 1.1rem;
+    color: #666;
+    max-width: 800px;
+    margin: 0 auto 20px;
+}
+
+.about ul {
+    list-style: none;
+    padding: 0;
+    max-width: 800px;
+    margin: 0 auto 20px;
+}
+
+.about ul li {
+    font-size: 1.1rem;
+    color: #666;
+    margin: 10px 0;
+    position: relative;
+    padding-left: 25px;
+}
+
+.about ul li::before {
+    content: '✔';
+    position: absolute;
+    left: 0;
+    color: #4ecdc4;
+    font-size: 1.2rem;
+}
+
 
 /* Features Section */
 .features {
@@ -183,4 +246,152 @@ footer {
 
 .footer-links a:hover {
     text-decoration: underline;
+}
+
+
+/* Back to Top Link */
+.back-to-top {
+    display: inline-block;
+    margin-top: 20px;
+    color: #4ecdc4;
+    font-size: 1rem;
+    font-weight: 400;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(78, 205, 196, 0.5);
+    /* Match the teal color */
+    transition: color 0.3s, border-color 0.3s;
+}
+
+.back-to-top:hover {
+    color: #ff6f61;
+    /* Coral color on hover */
+    border-color: #ff6f61;
+}
+
+/* Mobile Styles (767px and below) */
+@media (max-width: 767px) {
+    .hero {
+        height: 80vh;
+        /* Slightly shorter on mobile */
+    }
+
+    .hero-content {
+        max-width: 90%;
+        /* Use more of the viewport width */
+        padding: 15px;
+    }
+
+    .hero h1 {
+        font-size: 2.5rem;
+        /* Smaller font size for mobile */
+        line-height: 1.2;
+        /* Improve readability */
+    }
+
+    .subtitle {
+        font-size: 1.2rem;
+        /* Smaller subtitle */
+        margin: 15px 0;
+    }
+
+    .cta-buttons {
+        margin-top: 20px;
+    }
+
+    .cta-button {
+        padding: 12px 25px;
+        /* Slightly smaller buttons */
+        font-size: 1rem;
+        margin: 5px;
+        /* Stack buttons if needed */
+    }
+
+    /* Features Section */
+    .features {
+        padding: 40px 15px;
+    }
+
+    .features h2 {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+
+    .feature-grid {
+        grid-template-columns: 1fr;
+        /* Stack items on mobile */
+        gap: 20px;
+    }
+
+    .feature-item {
+        padding: 15px;
+    }
+
+    .feature-image {
+        height: 150px;
+        /* Smaller image height on mobile */
+    }
+
+    .feature-item h3 {
+        font-size: 1.3rem;
+    }
+
+    .feature-item p {
+        font-size: 0.9rem;
+    }
+
+    /* Testimonials Section */
+    .testimonials {
+        padding: 40px 15px;
+    }
+
+    .testimonials h2 {
+        font-size: 2rem;
+        margin-bottom: 30px;
+    }
+
+    .testimonial-grid {
+        grid-template-columns: 1fr;
+        /* Stack items on mobile */
+        gap: 20px;
+    }
+
+    .testimonial-item {
+        padding: 15px;
+    }
+
+    .testimonial-item p {
+        font-size: 1rem;
+    }
+
+    .testimonial-item h4 {
+        font-size: 0.9rem;
+    }
+
+    .about {
+        padding: 40px 15px;
+    }
+
+    .about h2 {
+        font-size: 2rem;
+    }
+
+    .about p,
+    .about ul li {
+        font-size: 1rem;
+    }
+
+    .back-to-top {
+        font-size: 0.9rem;
+        margin-top: 15px;
+    }
+
+    /* Footer */
+    footer {
+        padding: 15px;
+    }
+
+    .footer-links a {
+        margin: 0 5px;
+        font-size: 0.9rem;
+    }
 }

@@ -1,4 +1,3 @@
-// frontend/src/pages/LandingPage.tsx
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './LandingPage.css';
@@ -7,7 +6,7 @@ const LandingPage: React.FC = () => {
     return (
         <div className="landing-page">
             {/* Hero Section */}
-            <header className="hero">
+            <header id="top" className="hero">
                 <div className="hero-content">
                     <h1>Macrozapp</h1>
                     <p className="subtitle">
@@ -21,8 +20,34 @@ const LandingPage: React.FC = () => {
                             Sign Up
                         </Link>
                     </div>
+                    <a href="#about" className="learn-more">
+                        Learn More
+                    </a>
                 </div>
             </header>
+
+            {/* About Section */}
+            <section id="about" className="about">
+                <h2>About Macrozapp</h2>
+                <p>
+                    Macrozapp is a simple, user-focused app designed to help you track macros and achieve your fitness goals—on <em>your</em> terms. Unlike other apps that take a "one size fits all" approach with generic, overly verbose food lists, Macrozapp starts you with a curated selection of staple foods and goals that you can easily customize to fit your lifestyle.
+                </p>
+                <p>
+                    With Macrozapp, you’re in control:
+                </p>
+                <ul>
+                    <li>Create your own custom foods list for quick, personalized meal logging.</li>
+                    <li>Set tailored macro tracking goals that align with your unique needs and preferences.</li>
+                    <li>Start with a simple, practical foundation of staple foods and goals, then adapt them to your lifestyle and routine.</li>
+                    <li>Enjoy a clutter-free experience that prioritizes simplicity and flexibility over rigid, pre-set options.</li>
+                </ul>
+                <p>
+                    Whether you’re a fitness enthusiast, an athlete, or someone looking to improve your nutrition, Macrozapp empowers you to take charge of your health journey. Join thousands of users who have ditched the generic approach and embraced a tracking app that adapts to <em>them</em>. Start customizing your path to a healthier you today!
+                </p>
+                <a href="#top" className="back-to-top">
+                    Back to Top
+                </a>
+            </section>
 
             {/* Features Section with Images */}
             <section className="features">
@@ -58,7 +83,7 @@ const LandingPage: React.FC = () => {
                 </div>
             </section>
 
-            {/* Testimonials Section (Optional) */}
+            {/* Testimonials Section */}
             <section className="testimonials">
                 <h2>What Users Are Saying</h2>
                 <div className="testimonial-grid">

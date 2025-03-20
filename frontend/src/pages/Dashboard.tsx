@@ -463,6 +463,11 @@ const Dashboard: React.FC = () => {
                                     onChange={e => setServings(parseFloat(e.target.value) || 0)}
                                     step="0.1"
                                     min="0.1"
+                                    onFocus={(e) => {
+                                        if (e.target.value === '0') {
+                                            e.target.value = ''; // Clear the 0 on focus
+                                        }
+                                    }}
                                 />
                             </label>
                             <div>
@@ -498,6 +503,11 @@ const Dashboard: React.FC = () => {
                                     onChange={e => setWeight(parseFloat(e.target.value) || 0)}
                                     step="0.1"
                                     min="0"
+                                    onFocus={(e) => {
+                                        if (e.target.value === '0') {
+                                            e.target.value = ''; // Clear the 0 on focus
+                                        }
+                                    }}
                                 />
                             </label>
                             <div>

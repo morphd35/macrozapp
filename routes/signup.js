@@ -67,6 +67,10 @@ router.post('/', async (req, res) => {
         // Copy foods from master_foods for the new user
         const masterFoods = await db('master_foods').select('*');
         if (masterFoods.length > 0) {
+            // Create a mapping of master_foods.id to the new foods.id
+            const foodMapping = new Map();
+
+            // Insert foods and capture the new IDs
             const newFoods = await db('foods')
                 .insert(
                     masterFoods.map(food => ({
@@ -78,22 +82,32 @@ router.post('/', async (req, res) => {
                 )
                 .returning(['id', 'name', 'serving_size', 'category']);
 
-            console.log('DEBUG: Copied master foods for user_id:', newUser.id, newFoods);
-
-            // Copy macros for each new food
-            for (const food of newFoods) {
-                const masterMacros = await db('master_food_macros')
-                    .where({ food_id: masterFoods.find(mf => mf.name === food.name && mf.serving_size === food.serving_size).id });
-                if (masterMacros.length > 0) {
-                    await db('food_macros').insert(
-                        masterMacros.map(macro => ({
-                            food_id: food.id,
-                            macro_name: macro.macro_name,
-                            value: macro.value,
-                            unit: macro.unit,
-                        }))
-                    );
+            // Build the mapping: master_foods.id -> foods.id
+            for (const newFood of newFoods) {
+                const masterFood = masterFoods.find(
+                    mf => mf.name === newFood.name && mf.serving_size === newFood.serving_size
+                );
+                if (masterFood) {
+                    foodMapping.set(masterFood.id, newFood.id);
                 }
+            }
+
+            console.log('DEBUG: Copied master foods for user_id:', newUser.id, newFoods);
+            console.log('DEBUG: Food mapping (master_foods.id -> foods.id):', Array.from(foodMapping.entries()));
+
+            // Copy macros for each new food using the mapping
+            const masterMacros = await db('master_food_macros')
+                .whereIn('food_id', Array.from(foodMapping.keys()));
+
+            if (masterMacros.length > 0) {
+                const macrosToInsert = masterMacros.map(macro => ({
+                    food_id: foodMapping.get(macro.food_id), // Use the new foods.id
+                    macro_name: macro.macro_name,
+                    value: macro.value,
+                    unit: macro.unit,
+                }));
+
+                await db('food_macros').insert(macrosToInsert);
             }
 
             console.log('DEBUG: Copied master food macros for user_id:', newUser.id);

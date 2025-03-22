@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
+import logoFull from './assets/images/logo-full.png'; // Import the full logo
 import './App.css';
 
 const NavBar: React.FC = () => {
@@ -50,11 +51,19 @@ const NavBar: React.FC = () => {
 
     return (
         <nav className="nav-bar">
-            {/* Hamburger Icon for Mobile */}
-            <div className="hamburger-icon" onClick={toggleMenu}>
-                <span></span>
-                <span></span>
-                <span></span>
+            {/* Wrapper for logo and hamburger icon */}
+            <div className="nav-logo">
+                <img src={logoFull} alt="Macrozapp Logo" className="nav-logo-img" />
+            </div>
+            <div className="nav-header">
+
+
+
+                <div className="hamburger-icon" onClick={toggleMenu}>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </div>
             </div>
 
             {/* Navigation Links */}

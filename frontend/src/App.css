@@ -1357,18 +1357,30 @@ li {
   background-color: rgba(255, 255, 255, 0.95);
   padding: 10px;
   border-radius: 0;
-  /* Remove border radius since it’s at the top */
   width: 100%;
-  /* Full width for fixed positioning */
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   position: fixed;
-  /* Fix the nav-bar at the top */
   top: 0;
   left: 0;
   z-index: 1000;
-  /* Ensure it stays above other content */
   margin-bottom: 0;
-  /* Remove bottom margin since it’s fixed */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  /* Default for larger screens */
+}
+
+/* Logo in the nav bar */
+.nav-logo {
+  flex: 1;
+  text-align: center;
+  /* Center the logo */
+}
+
+.nav-logo-img {
+  max-width: 120px;
+  /* Adjust based on your logo's dimensions */
+  height: auto;
 }
 
 /* Hamburger Icon (hidden by default, shown on mobile) */
@@ -1449,9 +1461,25 @@ li {
     padding: 10px;
     width: 100%;
     display: flex;
-    justify-content: space-between;
-    /* Space for hamburger icon */
+    justify-content: center;
     align-items: center;
+  }
+
+  .nav-header {
+    display: flex;
+    align-items: center;
+
+  }
+
+  .nav-logo {
+    flex: 1;
+    text-align: left;
+    /* Align logo to the left on mobile */
+  }
+
+  .nav-logo-img {
+    max-width: 150px;
+    /* Smaller logo on mobile */
   }
 
   /* Show hamburger icon on mobile */

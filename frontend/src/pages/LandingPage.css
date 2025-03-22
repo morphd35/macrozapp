@@ -22,8 +22,25 @@
 }
 
 .hero-content {
-    max-width: 800px;
+    max-width: 90%;
+    /* Use a percentage to fit the viewport */
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* Center children horizontally */
+}
+
+.hero-logo {
+    max-width: 1200px;
+    /* Larger logo size */
+    width: 100%;
+    /* Ensure it scales within the container */
+    height: auto;
+    margin-bottom: 20px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .hero h1 {
@@ -276,9 +293,20 @@ footer {
     }
 
     .hero-content {
-        max-width: 90%;
+        max-width: 95%;
         /* Use more of the viewport width */
         padding: 15px;
+    }
+
+    .hero-logo {
+        max-width: 100%;
+        /* Fill the container */
+        width: 100%;
+        /* Ensure it takes the full width of the container */
+        margin-bottom: 15px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
     }
 
     .hero h1 {

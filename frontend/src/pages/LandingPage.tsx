@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import logoFull from '../assets/images/logo-full-nb.png'; // Import the full logo
 import './LandingPage.css';
 
 const LandingPage: React.FC = () => {
@@ -8,10 +9,10 @@ const LandingPage: React.FC = () => {
             {/* Hero Section */}
             <header id="top" className="hero">
                 <div className="hero-content">
-                    <h1>Macrozapp</h1>
-                    <p className="subtitle">
+                    <img src={logoFull} alt="Macrozapp Logo" className="hero-logo" />
+                    {/* <p className="subtitle">
                         Track Your Macros, Achieve Your Goals, and Live Healthier
-                    </p>
+                    </p> */}
                     <div className="cta-buttons">
                         <Link to="/login" className="cta-button primary">
                             Log In

@@ -32,6 +32,12 @@ h1 {
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Override color for Payment Page headline */
+.payment-headline {
+  color: #16A34A;
+  /* Equivalent to Tailwind's text-green-600 */
+}
+
 h2 {
   color: #4a5568;
   font-size: 1.5rem;
@@ -119,7 +125,7 @@ h2 {
   /* Ensure no extra margin on the text */
 }
 
-/* Responsive adjustments */
+/* Form Responsive adjustments */
 @media (max-width: 767px) {
   .form-card label.checkbox-label {
     margin: 3px 0;
@@ -129,6 +135,40 @@ h2 {
   .form-card label.checkbox-label input[type="checkbox"] {
     margin-right: 5px;
     /* Slightly reduce space on mobile */
+  }
+
+  .form-card .checkbox-container {
+    margin: 3px 0;
+  }
+
+  .form-card .checkbox-container span {
+    margin-right: 5px;
+  }
+
+  .form-card {
+    padding: 15px;
+  }
+
+  .form-card h2 {
+    font-size: 1.5rem;
+  }
+
+  .form-card label {
+    font-size: 0.9rem;
+  }
+
+  .form-card input {
+    padding: 8px;
+    font-size: 0.9rem;
+  }
+
+  .form-card div.checkbox-container {
+    margin: 3px 0;
+  }
+
+  .form-card div.checkbox-container span {
+    margin-right: 2px;
+    /* Further reduce on mobile */
   }
 }
 
@@ -153,17 +193,6 @@ h2 {
   margin: 0;
   display: inline-block;
   /* Ensure inline with text */
-}
-
-/* Responsive adjustments */
-@media (max-width: 767px) {
-  .form-card .checkbox-container {
-    margin: 3px 0;
-  }
-
-  .form-card .checkbox-container span {
-    margin-right: 5px;
-  }
 }
 
 /* In frontend src App.css */
@@ -202,38 +231,6 @@ h2 {
   cursor: pointer;
   font-size: 1.2rem;
   color: #2d3748;
-}
-
-/* Responsive Adjustments for Form */
-@media (max-width: 767px) {
-  .form-card {
-    padding: 15px;
-  }
-
-  .form-card h2 {
-    font-size: 1.5rem;
-  }
-
-  .form-card label {
-    font-size: 0.9rem;
-  }
-
-  .form-card input {
-    padding: 8px;
-    font-size: 0.9rem;
-  }
-}
-
-/* Responsive adjustments */
-@media (max-width: 767px) {
-  .form-card div.checkbox-container {
-    margin: 3px 0;
-  }
-
-  .form-card div.checkbox-container span {
-    margin-right: 2px;
-    /* Further reduce on mobile */
-  }
 }
 
 .input-with-icon {
@@ -997,6 +994,26 @@ li {
   /* Ensure columns adjust */
 }
 
+
+
+.food-lookup-placeholder select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: #f7fafc;
+  margin-top: 5px;
+}
+
+.food-lookup-placeholder label {
+  display: block;
+  text-align: left;
+  margin: 10px 0 5px;
+  font-size: 1rem;
+  color: #2d3748;
+}
+
 @media (min-width: 768px) {
 
   .food-table-row,
@@ -1251,7 +1268,6 @@ li {
     padding: 8px;
     text-align: left;
     font-size: 1.1em;
-    /* Increase font size for readability */
     border-bottom: 1px solid #ddd;
     min-width: unset;
     max-width: unset;
@@ -1277,20 +1293,15 @@ li {
     display: none;
   }
 
-  /* Add a label before each data cell to indicate the column */
+  /* Remove the data-label pseudo-element for detailed logs on mobile */
   .card .data-table-row .data-cell:not(:first-child)::before {
-    content: attr(data-label) ": ";
-    font-weight: bold;
-    display: inline-block;
-    width: 50%;
-    text-align: right;
-    padding-right: 10px;
+    content: none;
+    /* Remove the data-label prefix since we’re using a list */
   }
 
   .card .data-table-row .data-cell:not(:first-child) {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: none;
+    /* Hide data-cell elements since we’re using macro-list */
   }
 
   /* Remove sticky positioning on mobile for simplicity */
@@ -1303,6 +1314,46 @@ li {
   .card .food-name-column {
     min-width: unset !important;
     max-width: unset !important;
+  }
+
+  .card .data-table-row {
+    display: block;
+    padding: 10px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .card .data-table-row .data-cell.sticky.food-name-column {
+    display: block;
+    font-weight: bold;
+    background-color: #f0f0f0;
+    position: static;
+    padding: 8px;
+    text-align: left;
+    font-size: 1.1em;
+    border-bottom: none;
+  }
+
+  .card .macro-list {
+    padding: 8px 0;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .card .macro-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 0.95em;
+    color: #4a5568;
+  }
+
+  .card .macro-label {
+    font-weight: bold;
+    color: #2c3e50;
+  }
+
+  .card .macro-value {
+    text-align: right;
   }
 }
 
@@ -1568,7 +1619,7 @@ li {
 }
 
 /* Tablet (481px to 1023px) */
-@media (min-width: 481px) and (max-width: 1023px) {
+@media (min-width: 768px) and (max-width: 1023px) {
   .nav-bar {
     width: 100%;
     /* Full width since it’s fixed */
@@ -1593,4 +1644,70 @@ li {
     font-size: 1.1rem;
     min-width: 150px;
   }
+}
+
+.food-lookup {
+  margin-bottom: 20px;
+}
+
+.food-lookup input {
+  padding: 8px;
+  margin-right: 10px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.food-lookup button {
+  padding: 8px 16px;
+  background-color: #4ecdc4;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.food-lookup button:hover {
+  background-color: #45b7a0;
+}
+
+.food-result {
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+}
+
+.error {
+  color: red;
+  margin-top: 10px;
+}
+
+.ad-container {
+  text-align: center;
+}
+
+.upgrade-prompt {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #fff;
+  padding: 10px;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.upgrade-prompt a {
+  margin-right: 10px;
+  color: #26a69a;
+  text-decoration: none;
+}
+
+.upgrade-prompt button {
+  background: #bdbdbd;
+  color: white;
+  border: none;
+  padding: 5px 10px;
+  border-radius: 4px;
+  cursor: pointer;
 }

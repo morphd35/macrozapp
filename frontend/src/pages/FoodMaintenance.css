@@ -238,20 +238,32 @@
 }
 
 .food-maintenance .macro-detail {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 150px 1fr;
     font-size: 0.9rem;
     margin-bottom: 5px;
+    align-items: center;
 }
 
 .food-maintenance .macro-detail span:first-child {
     font-weight: bold;
     color: #2c3e50;
+    text-align: left;
+    /* Align label to the left */
+    padding-right: 10px;
 }
 
 .food-maintenance .macro-detail span:last-child {
     color: #4a5568;
+    white-space: normal;
+    /* Allow wrapping */
+    overflow: visible;
+    /* Prevent truncation */
+    text-overflow: initial;
+    /* Remove ellipsis */
+    text-align: left;
 }
+
 
 /* Hamburger and mobile navigation */
 .food-maintenance .hamburger-menu {
@@ -346,6 +358,23 @@
     .food-maintenance .food-table-row.expanded .mobile-details {
         display: grid;
     }
+
+    .food-maintenance .macro-detail span:first-child {
+        padding-right: 5px;
+        /* Reduce spacing on mobile */
+    }
+
+    .food-maintenance .macro-detail span:last-child {
+        font-size: 0.85rem;
+        /* Slightly smaller font on mobile */
+    }
+
+    .food-maintenance .macro-detail {
+        grid-template-columns: 120px 1fr;
+        /* Slightly smaller label width on mobile */
+        font-size: 0.85rem;
+        /* Slightly smaller font on mobile */
+    }
 }
 
 /* Tablet (768px to 1023px) */
@@ -357,6 +386,10 @@
     .card-food-maintenance {
         width: 95%;
         padding: 10px;
+        margin-left: auto;
+        /* Ensure centering */
+        margin-right: auto;
+        /* Ensure centering */
     }
 
     .food-maintenance .filter-section {
@@ -383,6 +416,10 @@
         gap: 5px;
     }
 
+    .food-maintenance .food-table-row.expanded .mobile-details {
+        display: grid;
+    }
+
     .food-maintenance .edit-icon,
     .food-maintenance .delete-icon,
     .food-maintenance .expand-icon {
@@ -402,6 +439,10 @@
 @media (min-width: 1024px) {
     .card-food-maintenance {
         max-width: 1200px;
+        margin-left: auto;
+        /* Ensure centering */
+        margin-right: auto;
+        /* Ensure centering */
     }
 }
 

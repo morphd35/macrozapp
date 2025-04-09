@@ -3,7 +3,7 @@ const cors = require('cors');
 const knex = require('knex');
 const app = express();
 
-//backend/inded.js
+
 const allowedOrigins = [
     'http://localhost:3000', // Default React port (just in case)
     'http://localhost:3001', // Your current frontend port
@@ -55,14 +55,6 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve static files with cache control (add after app.use(express.json()))
-app.use(express.static('frontend/build', {
-    setHeaders: (res, path) => {
-        if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.jpg')) {
-            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-        }
-    },
-}));
 app.use((req, res, next) => {
     res.setHeader('X-Content-Type-Options', 'nosniff');
     next();
@@ -73,6 +65,7 @@ app.use((req, res, next) => {
     next();
 });
 
+// backend/index.js
 app.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');
     next();
@@ -82,6 +75,8 @@ require('dotenv').config();
 console.log('JWT_SECRET:', process.env.JWT_SECRET);
 
 const isProduction = process.env.NODE_ENV === 'production';
+process.env.FRONTEND_BASE_URL = isProduction ? 'https://macrozapp.com' : 'http://localhost:3001';
+console.log('FRONTEND_BASE_URL set to:', process.env.FRONTEND_BASE_URL);
 const dbConfig = isProduction ? 'production' : 'development';
 const db = knex(require('./knexfile')[dbConfig]);
 app.set('db', db);
@@ -90,6 +85,8 @@ const foodLogsRoutes = require('./routes/food_logs');
 const foodRoutes = require('./routes/foods');
 const weightLogsRoutes = require('./routes/weight_logs');
 const categoriesRoutes = require('./routes/categories');
+const premiumRoutes = require('./routes/premium_1');
+const paymentRoutes = require('./routes/payment');
 
 try {
     const loginRoutes = require('./routes/login'); // Define here
@@ -111,9 +108,6 @@ const signupRoutes = require('./routes/signup');
 app.use('/api/signup', signupRoutes);
 console.log('Signup route mounted at /api/signup');
 
-// backend/index.js (modify the reset-password route mounting) 
-console.log('DEBUG: Clearing module cache for reset-password.js');
-delete require.cache[require.resolve('./routes/reset-password')];
 const resetPasswordRoutes = require('./routes/reset-password');
 app.use('/api/reset-password', resetPasswordRoutes);
 console.log('Reset password route mounted at /api/reset-password');
@@ -121,6 +115,12 @@ console.log('Reset password route mounted at /api/reset-password');
 const resetPasswordConfirmRoutes = require('./routes/reset-password-confirm');
 app.use('/api/reset-password-confirm', resetPasswordConfirmRoutes);
 console.log('Reset password confirm route mounted at /api/reset-password-confirm');
+
+
+app.use('/api/premium_1', premiumRoutes);
+console.log('Auth routes (including /me) mounted at /api/auth');
+
+app.use('/api/auth', paymentRoutes);
 
 app.all('/api/login/test', (req, res) => {
     res.json({ method: req.method, url: req.url });
@@ -130,11 +130,29 @@ app.use('/api/food_logs', foodLogsRoutes);
 app.use('/api/foods', foodRoutes);
 app.use('/api/weight_logs', weightLogsRoutes);
 app.use('/api/categories', categoriesRoutes);
-// backend/index.js
+
 app.use((req, res, next) => {
     console.log(`Incoming ${req.method} request to ${req.url} with headers:`, req.headers, 'body:', req.body);
     next();
 });
+
+// Serve static files with cache control (add after app.use(express.json()))
+app.use(express.static('frontend/build', {
+
+    setHeaders: (res, path) => {
+        if (path.endsWith('.js') || path.endsWith('.css') || path.endsWith('.png') || path.endsWith('.jpg')) {
+            res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        }
+    },
+    // Add debug log for static file requests
+    index: false, // Disable index.html fallback for API routes
+    redirect: false, // Disable redirects
+    setHeaders: (res, path, stat) => {
+        console.log(`Serving static file: ${path}`); // Debug log
+    }
+}));
+
+console.log('Registered routes:');
 
 // app.get('/', (req, res) => {
 //     res.json({ message: 'Macrozapp Backend API' });
@@ -165,6 +183,7 @@ app._router.stack.forEach((middleware) => {
 app.get('/test', (req, res) => res.send('Test route working'));
 app.post('/test-post', (req, res) => res.json({ message: 'POST test successful', body: req.body }));
 app.all('*', (req, res) => {
+    console.log(`404 - Cannot ${req.method} ${req.path}`); // Debug log
     res.status(404).send(`Cannot ${req.method} ${req.path}`);
 });
 

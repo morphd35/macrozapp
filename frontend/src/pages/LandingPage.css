@@ -90,6 +90,12 @@
     color: white;
 }
 
+.install {
+    background-color: #34d399;
+    /* Green to stand out */
+    color: white;
+}
+
 /* Learn More Link */
 .learn-more {
     display: inline-block;

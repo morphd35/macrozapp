@@ -57,7 +57,7 @@ const Goals: React.FC = () => {
         if (!userId) return;
         try {
             const res = await axiosInstance.get<MacroGoal[]>(`api/food_logs/goals/${userId}`);
-            console.log('Goals Response:', res.data);
+            // console.log('Goals Response:', res.data);
             setGoals(res.data || []);
         } catch (err) {
             const error = err as AxiosError;
@@ -81,7 +81,7 @@ const Goals: React.FC = () => {
                 unit: newGoal.unit,
                 goal_type: newGoal.goal_type,
             });
-            console.log('Save Goal Response:', response.data);
+            // console.log('Save Goal Response:', response.data);
             await fetchGoals();
             setNewGoal({ macro_name: '', target_value: 0, unit: '', goal_type: 'stay_under' });
             setShowAddModal(false);
@@ -103,7 +103,7 @@ const Goals: React.FC = () => {
                 unit: editGoal.unit,
                 goal_type: editGoal.goal_type,
             });
-            console.log('Update Goal Response:', response.data);
+            // console.log('Update Goal Response:', response.data);
             await fetchGoals();
             setEditGoal(null);
             setShowEditModal(false);

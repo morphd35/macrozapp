@@ -392,7 +392,7 @@ const Dashboard: React.FC = () => {
                         userId,
                     };
                     // console.log('Sending /food-nutrients request with payload:', payload);
-                    const nutrientsResponse = await axiosInstance.post('/api/auth/food-nutrients', payload);
+                    const nutrientsResponse = await axiosInstance.post('/api/premium_1/food-nutrients', payload);
                     // console.log('Nutrients API response:', nutrientsResponse.data);
 
                     const { name, serving_size, category, macros } = nutrientsResponse.data;
@@ -715,6 +715,7 @@ const Dashboard: React.FC = () => {
                                         onSearchResults={handleSearchResults}
                                         userFoods={memoizedUserFoods}
                                         query={foodQuery}
+                                        setQuery={setFoodQuery} // Pass setter
                                         error={error}
                                         setError={setError}
                                     />

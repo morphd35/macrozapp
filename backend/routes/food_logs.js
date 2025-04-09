@@ -50,7 +50,7 @@ router.post('/goals', async (req, res) => {
             })
             .returning('*');
 
-        console.log('Saved macro goal:', result[0]);
+        // console.log('Saved macro goal:', result[0]);
         res.json({ success: true, goal: result[0] });
     } catch (err) {
         console.error('Error in POST /goals:', err.message, err.stack);
@@ -73,6 +73,13 @@ router.post('/foods', async (req, res) => {
 
     try {
         const db = req.app.get('db');
+        const existingFood = await db('foods')
+            .where({ user_id: parsedUserId, name })
+            .first();
+        if (existingFood) {
+            const macros = await db('food_macros').where('food_id', existingFood.id);
+            return res.status(200).json({ ...existingFood, macros, custom: true });
+        }
         // Insert the food with user_id
         const [newFood] = await db('foods')
             .insert({
@@ -83,7 +90,7 @@ router.post('/foods', async (req, res) => {
             })
             .returning(['id', 'user_id', 'name', 'serving_size', 'category']);
 
-        console.log('Inserted food for user_id:', parsedUserId, newFood);
+        // console.log('Inserted food for user_id:', parsedUserId, newFood);
 
         // Insert all macros into food_macros
         const macroEntries = macros.map(macro => ({
@@ -95,7 +102,7 @@ router.post('/foods', async (req, res) => {
 
         await db('food_macros').insert(macroEntries);
 
-        console.log('Inserted food macros for food_id:', newFood.id, macroEntries);
+        // console.log('Inserted food macros for food_id:', newFood.id, macroEntries);
 
         const insertedMacros = await db('food_macros').where('food_id', newFood.id);
         res.status(201).json({ ...newFood, macros: insertedMacros, custom: true });
@@ -117,19 +124,19 @@ router.get('/foods', async (req, res) => {
         const foods = await db('foods')
             .where({ user_id: userId })
             .select('*');
-        console.log('Fetched foods for user_id:', userId, foods);
+        // console.log('Fetched foods for user_id:', userId, foods);
 
         const foodMacros = await db('food_macros')
             .whereIn('food_id', foods.map(food => food.id))
             .select('*');
-        console.log('Fetched food macros for user_id:', userId, foodMacros);
+        // console.log('Fetched food macros for user_id:', userId, foodMacros);
 
         const foodsWithMacros = foods.map(food => {
             const macros = foodMacros.filter(m => m.food_id === food.id);
             return { ...food, macros };
         });
 
-        console.log('Foods with macros to return for user_id:', userId, foodsWithMacros);
+        // console.log('Foods with macros to return for user_id:', userId, foodsWithMacros);
         res.json(foodsWithMacros);
     } catch (err) {
         console.error('Error fetching foods:', err.message, err.stack);
@@ -211,7 +218,7 @@ router.get('/:user_id/:date', async (req, res) => {
             .where('user_id', parsedUserId)
             .pluck('macro_name');
 
-        console.log('Raw tracked macros result:', trackedMacrosRaw);
+        // console.log('Raw tracked macros result:', trackedMacrosRaw);
 
         let trackedMacros = [];
         if (Array.isArray(trackedMacrosRaw)) {
@@ -221,12 +228,12 @@ router.get('/:user_id/:date', async (req, res) => {
             trackedMacros = [];
         }
 
-        console.log('Processed tracked macros:', trackedMacros);
+        // console.log('Processed tracked macros:', trackedMacros);
 
         const summary = {};
 
         if (!trackedMacros.length) {
-            console.log('No tracked macros found for user', parsedUserId);
+            // console.log('No tracked macros found for user', parsedUserId);
             return res.json(summary); // Return empty summary if no macros are tracked
         }
 
@@ -238,10 +245,10 @@ router.get('/:user_id/:date', async (req, res) => {
             .andWhere('foods.user_id', parsedUserId) // Filter foods by user_id
             .select('food_logs.id');
 
-        console.log('Food log IDs for user', parsedUserId, 'on', date, ':', foodLogs);
+        // console.log('Food log IDs for user', parsedUserId, 'on', date, ':', foodLogs);
 
         if (!foodLogs.length) {
-            console.log('No food logs found for user', parsedUserId, 'on', date);
+            // console.log('No food logs found for user', parsedUserId, 'on', date);
             return res.json(summary); // Return empty summary if no food logs
         }
 
@@ -254,14 +261,14 @@ router.get('/:user_id/:date', async (req, res) => {
             .groupBy('macro_name')
             .select('macro_name', db.raw('SUM(total_value) as total'));
 
-        console.log('Macro totals:', macroTotals);
+        // console.log('Macro totals:', macroTotals);
 
         // Build the summary
         macroTotals.forEach(row => {
             summary[`total_${row.macro_name.toLowerCase()}`] = row.total || 0;
         });
 
-        console.log('Daily summary for user', parsedUserId, 'on', date, ':', summary);
+        // console.log('Daily summary for user', parsedUserId, 'on', date, ':', summary);
         res.json(summary);
     } catch (err) {
         console.error('Error in GET /:user_id/:date:', err.message, err.stack);
@@ -278,11 +285,12 @@ router.get('/detailed/:user_id/:date', async (req, res) => {
     }
     try {
         const db = req.app.get('db');
-        console.log('Querying detailed logs for user_id:', parsedUserId, 'date:', date);
+        // console.log('Querying detailed logs for user_id:', parsedUserId, 'date:', date);
         const detailedLogs = await db('food_logs')
             .join('foods', 'food_logs.food_id', 'foods.id')
             .join('food_log_macros', 'food_logs.id', 'food_log_macros.food_log_id')
             .select(
+                'food_logs.id as log_id',
                 'foods.name',
                 'foods.serving_size',
                 'food_logs.servings',
@@ -294,7 +302,7 @@ router.get('/detailed/:user_id/:date', async (req, res) => {
             .where('food_logs.user_id', parsedUserId)
             .andWhere('food_logs.log_date', date)
             .andWhere('foods.user_id', parsedUserId); // Filter foods by user_id
-        console.log('Detailed logs result:', detailedLogs);
+        // console.log('Detailed logs result:', detailedLogs);
         res.json(detailedLogs);
     } catch (err) {
         console.error('Error in GET /detailed/:user_id/:date:', err.message, err.stack);
@@ -348,7 +356,7 @@ router.post('/food_logs', async (req, res) => {
 
     try {
         const db = req.app.get('db');
-        console.log('Received POST data:', { user_id, food_id, servings, log_date });
+        // console.log('Received POST data:', { user_id, food_id, servings, log_date });
 
         // Verify the food belongs to the user
         const food = await db('foods')
@@ -363,7 +371,7 @@ router.post('/food_logs', async (req, res) => {
             .where('food_id', food_id)
             .select('macro_name', 'value', 'unit');
 
-        console.log('Fetched food macros:', foodMacros);
+        // console.log('Fetched food macros:', foodMacros);
 
         if (!foodMacros.length) {
             return res.status(404).json({ error: 'Food macros not found' });
@@ -379,7 +387,7 @@ router.post('/food_logs', async (req, res) => {
             })
             .returning('*');
 
-        console.log('Inserted base log:', newLog);
+        // console.log('Inserted base log:', newLog);
 
         // Calculate and insert macro totals
         const macroTotals = foodMacros.map(macro => ({
@@ -391,7 +399,7 @@ router.post('/food_logs', async (req, res) => {
 
         await db('food_log_macros').insert(macroTotals);
 
-        console.log('Inserted macro totals:', macroTotals);
+        // console.log('Inserted macro totals:', macroTotals);
 
         // Fetch the full log entry with macros for the response
         const fullLog = await db('food_logs')

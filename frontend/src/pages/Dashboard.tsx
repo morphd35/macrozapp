@@ -1,11 +1,18 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react';
 import { AxiosError } from 'axios';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
+import SearchIcon from '@mui/icons-material/Search';
 import { jwtDecode } from 'jwt-decode';
 import axiosInstance from '../utils/axiosConfig';
+import { Link, useLocation, useNavigate } from 'react-router-dom'; // Add Link for the upgrade prompt
+import { AuthContext } from '../context/AuthContext'; // Add AuthContext
+import FoodLookup from '../FoodLookup'; // Import the FoodLookup component
+import { FoodItem } from '../types'; // Import the shared type
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import '../App.css';
 
 interface ErrorResponse {
@@ -32,11 +39,14 @@ interface FoodMacro {
 
 interface Food {
     id: number;
+    user_id: number;
     name: string;
     serving_size: string;
     category: string;
     macros: FoodMacro[];
     custom?: boolean;
+    foodId?: string;
+
 }
 
 interface Category {
@@ -53,7 +63,20 @@ interface MacroGoal {
     goal_type: 'stay_under' | 'reach_or_exceed';
 }
 
+const debounce = (func: (...args: any[]) => void, delay: number) => {
+    let timeoutId: NodeJS.Timeout;
+    return (...args: any[]) => {
+        clearTimeout(timeoutId);
+        timeoutId = setTimeout(() => func(...args), delay);
+    };
+};
+
 const Dashboard: React.FC = () => {
+    const { user, token, refreshUser } = useContext(AuthContext);
+    const location = useLocation();
+    const navigate = useNavigate();
+    const stableUser = useMemo(() => user, [user?.id, user?.isPaid, user?.isPaidOneTime]);
+    const stableToken = useMemo(() => token, [token ? JSON.stringify(token) : token]);
     const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
     const [goals, setGoals] = useState<MacroGoal[]>([]);
     const [logDate, setLogDate] = useState<string>(() => {
@@ -79,12 +102,34 @@ const Dashboard: React.FC = () => {
     const [weight, setWeight] = useState<number>(0);
     const [error, setError] = useState('');
     const [customFoodMacros, setCustomFoodMacros] = useState<{ [key: string]: number }>({}); // Track macro values for the form
+    const [searchResults, setSearchResults] = useState<FoodItem[]>([]); // New state for search results
+    const [searchQuery, setSearchQuery] = useState<string>(''); // New state for search query
+    const [dashboardSearchQuery, setDashboardSearchQuery] = useState<string>(''); // New state for dashboard search
+    const [hasFetchedInitialData, setHasFetchedInitialData] = useState(false);
+    const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+    // Determine user status
+    const userStatus = useMemo(() => {
+        if (stableUser?.isPaid) return 'subscribed';
+        if (stableUser?.isPaidOneTime) return 'onetime';
+        return 'free';
+    }, [stableUser]);
+
+    // AdSense and upgrade prompt logic
+    useEffect(() => {
+        if (userStatus === 'free') {
+            // Queue the ad request
+            (window.adsbygoogle = window.adsbygoogle || []).push({});
+            setTimeout(() => setShowUpgradePrompt(true), 5000); // Show prompt after 5s
+        }
+    }, [userStatus]);
+
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (token) {
+        // console.log('Token changed:', stableToken);
+        if (stableToken && !userId) { // Only set userId if it hasn't been set
             try {
-                const decoded: { id: number; username: string } = jwtDecode(token);
+                const decoded: { id: number; username: string } = jwtDecode(stableToken);
                 setUserId(decoded.id);
                 localStorage.setItem('user_id', decoded.id.toString());
             } catch (err) {
@@ -93,19 +138,19 @@ const Dashboard: React.FC = () => {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user_id');
             }
-        } else {
+        } else if (!stableToken) {
             setError('No token found. Please log in.');
         }
-    }, []);
+    }, [stableToken, userId]);
 
     const fetchDailySummary = useCallback(async () => {
         if (!userId) return;
         setLoading(true);
         try {
             const url = `/api/food_logs/${userId}/${logDate}`;
-            console.log('Fetching daily summary from:', url);
+            // console.log('Fetching daily summary from:', url);
             const res = await axiosInstance.get<DailySummary>(url);
-            console.log('Raw Daily Summary Response:', res.data);
+            // console.log('Raw Daily Summary Response:', res.data);
             const parsedSummary = res.data || {};
             setDailySummary(parsedSummary);
         } catch (err) {
@@ -123,7 +168,7 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         try {
             const res = await axiosInstance.get<MacroGoal[]>(`/api/food_logs/goals/${userId}`);
-            console.log('Goals Response:', res.data);
+            // console.log('Goals Response:', res.data);
             setGoals(res.data || []);
             // Initialize customFoodMacros with tracked macros
             const initialMacros = res.data.reduce((acc, goal) => {
@@ -148,7 +193,7 @@ const Dashboard: React.FC = () => {
             const res = await axiosInstance.get<Food[]>('/api/food_logs/foods', {
                 params: { user_id: userId },
             });
-            console.log('Fetched foods:', res.data);
+            // console.log('Fetched foods:', res.data);
             setFoods(res.data);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
@@ -163,7 +208,7 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         try {
             const res = await axiosInstance.get<Category[]>('/api/categories');
-            console.log('Fetched categories:', res.data);
+            // console.log('Fetched categories:', res.data);
             setCategories(res.data);
         } catch (err) {
             console.error('Fetch Categories Error:', err);
@@ -175,13 +220,46 @@ const Dashboard: React.FC = () => {
     }, []);
 
     useEffect(() => {
-        if (userId) {
+        // console.log('Token changed:', token);
+        if (token) {
+            try {
+                const decoded: { id: number; username: string } = jwtDecode(token);
+                setUserId(decoded.id);
+                localStorage.setItem('user_id', decoded.id.toString());
+            } catch (err) {
+                console.error('Error decoding token:', err);
+                setError('Invalid token. Please log in again.');
+                localStorage.removeItem('token');
+                localStorage.removeItem('user_id');
+            }
+        } else {
+            setError('No token found. Please log in.');
+        }
+    }, [token]);
+
+    // useEffect(() => {
+    //     // console.log('Dashboard re-rendered, state:', { userId, foodsLength: foods.length, searchResultsLength: searchResults.length, foodQuery, showLogModal });
+    // });
+
+    useEffect(() => {
+        if (userId && !hasFetchedInitialData) {
             fetchDailySummary();
             fetchGoals();
             fetchFoods();
             fetchCategories();
+            setHasFetchedInitialData(true);
         }
-    }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId]);
+    }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, hasFetchedInitialData]);
+
+    // Refetch user data if payment was just verified
+    useEffect(() => {
+        if (location.state?.paymentVerified && token) {
+            // console.log('Payment verified, refetching user data...');
+            refreshUser();
+            // Clear the paymentVerified flag by updating the location state
+            navigate(location.pathname, { state: { ...location.state, paymentVerified: false }, replace: true });
+        }
+    }, [location.state, token, refreshUser]);
 
     const addCategory = async () => {
         if (newCategory.trim()) {
@@ -236,7 +314,7 @@ const Dashboard: React.FC = () => {
                 weight_lb: weight,
                 log_date: logDate,
             });
-            console.log('Log Weight Response:', response.data);
+            // console.log('Log Weight Response:', response.data);
             setShowLogWeightModal(false);
             setWeight(0);
             setSuccess('Weight logged successfully!');
@@ -270,7 +348,7 @@ const Dashboard: React.FC = () => {
                     category,
                     macros,
                 });
-                console.log('Add Food Response:', res.data);
+                // console.log('Add Food Response:', res.data);
                 const newFood = { ...res.data, custom: true };
                 setFoods(prevFoods => [...prevFoods, newFood]);
                 await fetchFoods(); // Re-fetch to ensure consistency
@@ -290,30 +368,80 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const logFood = async () => {
-        if (!selectedFood || !userId) {
-            console.warn('No selected food or userId:', { selectedFood, userId });
-            setError('Please select a food to log.');
+    // In Dashboard.tsx
+    // In Dashboard.tsx
+    const logFood = async (food: Food, servings: number = 1) => {
+        if (!food || !userId) {
+            toast.error('Please select a food and ensure you are logged in.');
             return;
         }
+
         try {
+            let foodToLog = food;
+
+            // If the food doesn't have a valid ID (i.e., it's not in the foods table yet), add it
+            if (!food.id || food.id === -1) {
+                let newFoodData;
+
+                // For paid users with a new Edamam food (not yet in the foods table and not custom), fetch goal-specific nutrients
+                if (stableUser?.isPaid && food.name.endsWith('(Edamam)') && !food.custom) {
+                    const payload = {
+                        foodId: food.foodId,
+                        quantity: servings,
+                        measure: 'serving',
+                        userId,
+                    };
+                    // console.log('Sending /food-nutrients request with payload:', payload);
+                    const nutrientsResponse = await axiosInstance.post('/api/auth/food-nutrients', payload);
+                    // console.log('Nutrients API response:', nutrientsResponse.data);
+
+                    const { name, serving_size, category, macros } = nutrientsResponse.data;
+
+                    newFoodData = {
+                        user_id: userId,
+                        name,
+                        serving_size,
+                        category,
+                        macros,
+                    };
+                } else {
+                    // Free users, local foods, or custom foods: use the existing macros
+                    newFoodData = {
+                        user_id: userId,
+                        name: food.name,
+                        serving_size: food.serving_size,
+                        category: food.category,
+                        macros: food.macros,
+                    };
+                }
+
+                // Add to foods table
+                const response = await axiosInstance.post<Food>('/api/food_logs/foods', newFoodData);
+                // console.log('Add Food Response from backend:', response.data);
+                foodToLog = { ...response.data, custom: true, foodId: food.foodId };
+                setFoods(prevFoods => [...prevFoods, foodToLog]);
+            }
+
+            // Log the food to food_logs
             const response = await axiosInstance.post('/api/food_logs/food_logs', {
                 user_id: userId,
-                food_id: selectedFood.id,
+                food_id: foodToLog.id,
                 servings,
                 log_date: logDate,
             });
-            console.log('Log Food Response:', response.data);
+            // console.log('Log Food Response:', response.data);
+
             await fetchDailySummary();
-            await fetchFoods();
             setShowLogModal(false);
             setSelectedFood(null);
             setServings(1);
-            setSuccess('Food logged successfully!');
+            setSearchResults([]);
+            setFoodQuery('');
+            toast.success('Food logged successfully!');
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
             console.error('Log Food Error:', error.response?.data || error.message);
-            setError(error.response?.data?.error || 'Failed to log food.');
+            toast.error(error.response?.data?.error || 'Failed to log food.');
         }
     };
 
@@ -322,6 +450,121 @@ const Dashboard: React.FC = () => {
             ...prev,
             [macroName]: Math.max(0, value), // Prevent negative values
         }));
+    };
+    const [foodQuery, setFoodQuery] = useState<string>('');
+    // const debouncedSetFoodQuery = useMemo(() => debounce((value: string) => {
+    //     setFoodQuery(value);
+    // }, 300), [setFoodQuery]);
+
+    // useEffect(() => {
+    //     console.log('foodQuery changed:', foodQuery);
+    // }, [foodQuery]);
+
+    const handleSearchResults = useCallback((results: FoodItem[], query: string) => {
+        const uniqueResults = Array.from(
+            new Map(results.map(item => [`${item.foodId}-${item.label}`, item])).values()
+        );
+        // console.log('Unique search results:', uniqueResults);
+
+        // If the API call succeeded but returned no results, show a toast message
+        if (uniqueResults.length === 0 && query.trim()) {
+            toast.info('No results found in Edamam for this query. Showing local foods.');
+        }
+
+        // Update searchResults with Edamam results (or empty array if none found)
+        setSearchResults(uniqueResults);
+    }, []);
+
+    // useEffect(() => {
+    //     console.log('foodQuery changed:', foodQuery);
+    // }, [foodQuery]);
+
+    // Add debug log for re-renders
+    // useEffect(() => {
+    //     console.log('Dashboard re-rendered, state:', { userId, foods, searchResults, searchQuery, showLogModal });
+    // });
+
+    const memoizedUserFoods = useMemo(() => {
+        // console.log('memoizedUserFoods recalculated, foods:', foods);
+        return foods.map(food => {
+            const mappedFood = {
+                foodId: food.id.toString(),
+                label: food.name,
+                category: food.category,
+                nutrients: {
+                    calories: food.macros.find(m => m.macro_name === 'calories')?.value || 0,
+                    protein: food.macros.find(m => m.macro_name === 'protein')?.value || 0,
+                    carbs: food.macros.find(m => m.macro_name === 'carbs')?.value || 0,
+                    fats: food.macros.find(m => m.macro_name === 'fats')?.value || 0,
+                },
+                serving_size: food.serving_size,
+                custom: !food.name.endsWith('(Edamam)'),
+            };
+            // console.log('Mapped food:', mappedFood);
+            return mappedFood;
+        });
+    }, [foods]);
+
+    const filteredLocalFoods = useMemo(() => {
+        if (!foodQuery.trim()) return memoizedUserFoods; // Show all local foods if no query
+        return memoizedUserFoods.filter(food =>
+            food.label.toLowerCase().includes(foodQuery.toLowerCase())
+        );
+    }, [foodQuery, memoizedUserFoods]);
+
+    const [shouldLog, setShouldLog] = useState(true);
+
+
+    const handleFoodSelect = async (data: FoodItem) => {
+        // console.log('handleFoodSelect called with data:', data);
+        const { foodId, label, category, nutrients, custom } = data;
+        if (!userId) {
+            console.error('No userId available for selecting food');
+            setError('User not authenticated. Please log in again.');
+            return;
+        }
+
+        try {
+            // Check if the food already exists locally
+            const existingFood = foods.find(f => f.user_id === userId && f.name === `${label} (Edamam)`);
+            let selected: Food;
+
+            if (existingFood) {
+                // console.log('Food already exists in user\'s foods:', existingFood);
+                selected = existingFood;
+            } else {
+                // Initialize macros based on user's goals
+                const initialMacros = goals.map(goal => {
+                    const value = goal.macro_name === 'calories' ? nutrients.calories :
+                        goal.macro_name === 'protein' ? nutrients.protein :
+                            goal.macro_name === 'carbs' ? nutrients.carbs :
+                                goal.macro_name === 'fats' ? nutrients.fats : 0;
+                    return {
+                        macro_name: goal.macro_name,
+                        value,
+                        unit: goal.unit,
+                    };
+                });
+
+                selected = {
+                    id: -1, // New food, not yet in the foods table
+                    user_id: userId,
+                    name: `${label} (Edamam)`,
+                    serving_size: '1 serving',
+                    category,
+                    macros: initialMacros,
+                    custom: custom || false,
+                    foodId, // Store Edamam foodId for the nutrient fetch
+                };
+            }
+
+            setSelectedFood(selected);
+            // console.log('Selected food set to:', selected);
+        } catch (err) {
+            const error = err as AxiosError<ErrorResponse>;
+            console.error('Error selecting food:', error.response?.data || error.message);
+            setError(error.response?.data?.error || 'Failed to select food.');
+        }
     };
 
     const formatNumber = (num: number | undefined | null): string => {
@@ -387,11 +630,22 @@ const Dashboard: React.FC = () => {
                             <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
                         </div>
                     </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <input
+                            type="text"
+                            value={dashboardSearchQuery}
+                            onChange={(e) => setDashboardSearchQuery(e.target.value)}
+                            onFocus={() => setShowLogModal(true)}
+                            placeholder="Search for a food..."
+                            style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
+                        />
+                        <SearchIcon style={{ cursor: 'pointer' }} />
+                    </div>
                     <div>
-                        <button className="button-with-icon" onClick={() => setShowLogModal(true)}>
+                        {/* <button className="button-with-icon" onClick={() => setShowLogModal(true)}>
                             <RestaurantIcon className="icon" />
                             Log Food
-                        </button>
+                        </button> */}
                         <button className="button-with-icon" onClick={() => setShowLogWeightModal(true)}>
                             <FitnessCenterIcon className="icon" />
                             Log Weight
@@ -425,126 +679,245 @@ const Dashboard: React.FC = () => {
                 )
             )}
 
-            {showLogModal && (
-                <>
-                    <div className="modal-backdrop" onClick={() => setShowLogModal(false)} />
-                    <div className="modal">
-                        <h3>Log Food</h3>
-                        <div className="form-grid">
-                            <label>
-                                Select Food
-                                <select
-                                    value={selectedFood?.id || ''}
-                                    onChange={e => {
-                                        const food = foods.find(f => f.id === parseInt(e.target.value));
-                                        console.log('Selected food:', food); // Debug log
-                                        setSelectedFood(food || null);
-                                    }}
-                                >
-                                    <option value="">Select Food</option>
-                                    {foods.map(food => (
-                                        <option key={food.id} value={food.id}>
-                                            {food.name} ({food.serving_size})
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <div>
-                                <button className="button-with-icon" onClick={() => setShowAddFoodModal(true)}>
-                                    <AddCircleOutlineIcon className="icon" />
-                                    Add New Food
-                                </button>
-                            </div>
-                            <label>
-                                Servings
-                                <input
-                                    type="number"
-                                    value={servings}
-                                    onChange={e => setServings(parseFloat(e.target.value) || 0)}
-                                    step="0.1"
-                                    min="0.1"
-                                    onFocus={(e) => {
-                                        if (e.target.value === '0') {
-                                            e.target.value = ''; // Clear the 0 on focus
-                                        }
-                                    }}
-                                />
-                            </label>
-                            <div>
-                                <button className="button-with-icon" onClick={logFood}>
-                                    <RestaurantIcon className="icon" />
-                                    Log Food
-                                </button>
-                            </div>
-                        </div>
-                        <button type="button" onClick={() => setShowLogModal(false)}>Cancel</button>
+            <div>
+                {/* AdSense for Free Users */}
+                {userStatus === 'free' && (
+                    <div className="ad-container" style={{ margin: '20px 0' }}>
+                        <ins
+                            className="adsbygoogle"
+                            style={{ display: 'block' }}
+                            data-ad-client="ca-pub-6187653588497423"
+                            data-ad-slot="2864511065"
+                            data-ad-format="auto"
+                        />
                     </div>
-                </>
-            )}
+                )}
 
-            {showLogWeightModal && (
-                <>
-                    <div className="modal-backdrop" onClick={() => setShowLogWeightModal(false)} />
-                    <div className="modal">
-                        <h3>Log Weight</h3>
-                        <div className="form-grid">
-                            <label>
-                                Date
-                                <div className="input-with-icon">
-                                    <CalendarTodayIcon className="icon" />
-                                    <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
+                {/* Upgrade Prompt for Free Users */}
+                {userStatus === 'free' && showUpgradePrompt && (
+                    <div className="upgrade-prompt">
+                        <p>Remove ads and unlock premium features!</p>
+                        <Link to="/payment-onetime">One-Time Payment ($8.99)</Link>
+                        <Link to="/payment">Subscribe ($4.99/mo)</Link>
+                        <button onClick={() => setShowUpgradePrompt(false)}>Dismiss</button>
+                    </div>
+                )}
+
+
+                {showLogModal && (
+                    <>
+                        <div className="modal-backdrop" onClick={() => setShowLogModal(false)} />
+                        <div className="modal" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                            <h3 style={{ marginBottom: '10px' }}>Log Food</h3>
+                            <div style={{ flex: '0 0 auto' }}>
+                                {stableUser?.isPaid ? (
+                                    <FoodLookup
+                                        onSearchResults={handleSearchResults}
+                                        userFoods={memoizedUserFoods}
+                                        query={foodQuery}
+                                        error={error}
+                                        setError={setError}
+                                    />
+                                ) : stableUser?.isPaidOneTime ? (
+                                    <div className="food-lookup-local">
+                                        <input
+                                            type="text"
+                                            placeholder="Search your local foods..."
+                                            value={foodQuery}
+                                            onChange={(e) => setFoodQuery(e.target.value)}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div className="food-lookup-placeholder">
+                                        <input
+                                            type="text"
+                                            placeholder="Search for a food (e.g., avocado)"
+                                            disabled
+                                        />
+                                        <p>
+                                            Upgrade to Premium for $4.99 to unlock food lookup!{' '}
+                                            <Link to="/payment">Upgrade Now</Link>
+                                        </p>
+                                        <p>
+                                            Or get One-Time Premium ($8.99) for ad-free, private data, and local search!{' '}
+                                            <Link to="/payment-onetime">Buy Now</Link>
+                                        </p>
+                                        <div style={{ marginTop: '10px' }}>
+                                            <label>
+                                                Select a local food to log:
+                                                <select
+                                                    value={selectedFood?.foodId || ''}
+                                                    onChange={(e) => {
+                                                        const selectedFoodId = e.target.value;
+                                                        const food = memoizedUserFoods.find(f => f.foodId === selectedFoodId);
+                                                        handleFoodSelect(food as FoodItem);
+                                                    }}
+                                                    style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+                                                >
+                                                    <option value="">-- Select a food --</option>
+                                                    {memoizedUserFoods.map(food => (
+                                                        <option key={food.foodId} value={food.foodId}>
+                                                            {food.label} ({food.serving_size})
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </label>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            {/* Display Edamam search results */}
+                            {searchResults.length > 0 && (
+                                <div style={{ flex: '1 1 auto', overflowY: 'auto', margin: '10px 0' }}>
+                                    <h4 style={{ margin: '0 0 10px 0' }}>Search Results for "{foodQuery}"</h4>
+                                    <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                                        {searchResults.map((food) => (
+                                            <li
+                                                key={`${food.foodId}-${food.source}`}
+                                                style={{
+                                                    padding: '12px',
+                                                    borderBottom: '1px solid #eee',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    cursor: 'pointer',
+                                                    backgroundColor: selectedFood?.foodId === food.foodId ? '#e0f7fa' : 'transparent',
+                                                    transition: 'background-color 0.2s',
+                                                }}
+                                                onClick={() => handleFoodSelect(food)}
+                                            >
+                                                <div>
+                                                    <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
+                                                    <div style={{ marginTop: '5px' }}>
+                                                        <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
+                                                        <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
+                                                        <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </div>
-                            </label>
-                            <label>
-                                Weight (lbs)
-                                <input
-                                    type="number"
-                                    value={weight}
-                                    onChange={e => setWeight(parseFloat(e.target.value) || 0)}
-                                    step="0.1"
-                                    min="0"
-                                    onFocus={(e) => {
-                                        if (e.target.value === '0') {
-                                            e.target.value = ''; // Clear the 0 on focus
-                                        }
+                            )}
+                            {/* Always display local foods that match the query */}
+                            <div style={{ flex: '1 1 auto', overflowY: 'auto', margin: '10px 0' }}>
+                                <h4 style={{ margin: '0 0 10px 0' }}>
+                                    {foodQuery.trim() ? `Local Foods Matching "${foodQuery}"` : 'Your Local Foods'}
+                                </h4>
+                                {filteredLocalFoods.length > 0 ? (
+                                    <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                                        {filteredLocalFoods.map((food) => (
+                                            <li
+                                                key={`${food.foodId}-local`}
+                                                style={{
+                                                    padding: '12px',
+                                                    borderBottom: '1px solid #eee',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center',
+                                                    cursor: 'pointer',
+                                                    backgroundColor: selectedFood?.foodId === food.foodId ? '#e0f7fa' : 'transparent',
+                                                    transition: 'background-color 0.2s',
+                                                }}
+                                                onClick={() => handleFoodSelect(food)}
+                                            >
+                                                <div>
+                                                    <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
+                                                    <div style={{ marginTop: '5px' }}>
+                                                        <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
+                                                        <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
+                                                        <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
+                                                    </div>
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p>No local foods match your search query.</p>
+                                )}
+                            </div>
+                            {selectedFood && (
+                                <div style={{ margin: '10px 0' }}>
+                                    <label>
+                                        Number of Servings:
+                                        <input
+                                            type="number"
+                                            value={servings}
+                                            onChange={(e) => setServings(Math.max(1, parseFloat(e.target.value) || 1))}
+                                            min="1"
+                                            step="0.1"
+                                            style={{ marginLeft: '10px', padding: '5px', width: '100px' }}
+                                        />
+                                    </label>
+                                </div>
+                            )}
+                            <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'space-between', paddingTop: '10px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                    <button
+                                        className="button-with-icon"
+                                        onClick={() => setShowAddFoodModal(true)}
+                                        style={{ backgroundColor: '#26a69a', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px' }}
+                                    >
+                                        <AddCircleOutlineIcon className="icon" />
+                                        Add New Food
+                                    </button>
+                                    <button
+                                        className="button-with-icon"
+                                        onClick={() => selectedFood && logFood(selectedFood, servings)}
+                                        disabled={!selectedFood}
+                                        style={{
+                                            backgroundColor: selectedFood ? '#26a69a' : '#bdbdbd',
+                                            color: 'white',
+                                            border: 'none',
+                                            padding: '10px 20px',
+                                            borderRadius: '4px',
+                                            cursor: selectedFood ? 'pointer' : 'not-allowed',
+                                        }}
+                                    >
+                                        <RestaurantIcon className="icon" />
+                                        Log Food
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowLogModal(false);
+                                        setFoodQuery('');
+                                        setSearchResults([]);
+                                        setSelectedFood(null);
+                                        setServings(1);
                                     }}
-                                />
-                            </label>
-                            <div>
-                                <button className="button-with-icon" onClick={logWeight}>
-                                    <FitnessCenterIcon className="icon" />
-                                    Log Weight
+                                    style={{ backgroundColor: '#bdbdbd', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px' }}
+                                >
+                                    Cancel
                                 </button>
                             </div>
                         </div>
-                        <button type="button" onClick={() => setShowLogWeightModal(false)}>Cancel</button>
-                    </div>
-                </>
-            )}
+                    </>
+                )}
+            </div>
 
-            {showAddFoodModal && (
-                <>
-                    <div className="modal-backdrop" onClick={() => setShowAddFoodModal(false)} />
-                    <div className="modal">
-                        <h3>Add Custom Food</h3>
-                        <form onSubmit={addCustomFood}>
-                            <label>
-                                Name
-                                <input type="text" name="name" required />
-                            </label>
-                            <label>
-                                Serving Size
-                                <input type="text" name="serving_size" required />
-                            </label>
-                            {goals.map(goal => (
-                                <label key={goal.macro_name}>
-                                    {goal.macro_name} ({goal.unit})
+            {
+                showLogWeightModal && (
+                    <>
+                        <div className="modal-backdrop" onClick={() => setShowLogWeightModal(false)} />
+                        <div className="modal">
+                            <h3>Log Weight</h3>
+                            <div className="form-grid">
+                                <label>
+                                    Date
+                                    <div className="input-with-icon">
+                                        <CalendarTodayIcon className="icon" />
+                                        <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
+                                    </div>
+                                </label>
+                                <label>
+                                    Weight (lbs)
                                     <input
                                         type="number"
-                                        name={`macro_${goal.macro_name}`}
-                                        step="0.1" // Allow decimal values for all macros
-                                        value={customFoodMacros[goal.macro_name] || 0}
-                                        onChange={e => handleMacroChange(goal.macro_name, parseFloat(e.target.value) || 0)}
+                                        value={weight}
+                                        onChange={e => setWeight(parseFloat(e.target.value) || 0)}
+                                        step="0.1"
                                         min="0"
                                         onFocus={(e) => {
                                             if (e.target.value === '0') {
@@ -553,85 +926,133 @@ const Dashboard: React.FC = () => {
                                         }}
                                     />
                                 </label>
-                            ))}
-                            <label>
-                                Category
-                                <select name="category" required>
-                                    <option value="">Select Category</option>
-                                    {categories.map(category => (
-                                        <option key={category.id} value={category.name}>
-                                            {category.name}
-                                        </option>
-                                    ))}
-                                </select>
-                            </label>
-                            <button type="button" onClick={() => setShowCategoryModal(true)}>
-                                Manage Categories
-                            </button>
-                            <button type="submit">Add Food</button>
-                            <button type="button" onClick={() => setShowAddFoodModal(false)}>Cancel</button>
-                        </form>
-                    </div>
-                </>
-            )}
-
-            {showCategoryModal && (
-                <>
-                    <div className="modal-backdrop" onClick={() => setShowCategoryModal(false)} />
-                    <div className="modal" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-                        <h3>Manage Categories</h3>
-                        <div className="category-modal-content">
-                            <div className="new-category-section">
-                                <label>
-                                    New Category
-                                    <input
-                                        type="text"
-                                        value={newCategory}
-                                        onChange={e => setNewCategory(e.target.value)}
-                                        placeholder="Enter new category"
-                                    />
-                                </label>
-                                <button onClick={addCategory}>Add Category</button>
+                                <div>
+                                    <button className="button-with-icon" onClick={logWeight}>
+                                        <FitnessCenterIcon className="icon" />
+                                        Log Weight
+                                    </button>
+                                </div>
                             </div>
-                            <ul>
-                                {categories.map(category => (
-                                    <li key={category.id}>
-                                        {editingCategory && editingCategory.id === category.id ? (
-                                            <>
-                                                <input
-                                                    type="text"
-                                                    value={editingCategory.name}
-                                                    onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                                                />
-                                                <button className="save-btn" onClick={editCategory}>Save</button>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <span>{category.name}</span>
-                                                <div className="category-actions">
-                                                    <button className="edit-btn" onClick={() => setEditingCategory(category)}>Edit</button>
-                                                    <button className="delete-btn" onClick={() => deleteCategory(category.id)}>Delete</button>
-                                                </div>
-                                            </>
-                                        )}
-                                    </li>
-                                ))}
-                            </ul>
-                            <button
-                                className="close-btn"
-                                onClick={() => {
-                                    setShowCategoryModal(false);
-                                    setEditingCategory(null);
-                                    setNewCategory('');
-                                }}
-                            >
-                                Close
-                            </button>
+                            <button type="button" onClick={() => setShowLogWeightModal(false)}>Cancel</button>
                         </div>
-                    </div>
-                </>
-            )}
-        </div>
+                    </>
+                )
+            }
+
+            {
+                showAddFoodModal && (
+                    <>
+                        <div className="modal-backdrop" onClick={() => setShowAddFoodModal(false)} />
+                        <div className="modal">
+                            <h3>Add Custom Food</h3>
+                            <form onSubmit={addCustomFood}>
+                                <label>
+                                    Name
+                                    <input type="text" name="name" required />
+                                </label>
+                                <label>
+                                    Serving Size
+                                    <input type="text" name="serving_size" required />
+                                </label>
+                                {goals.map(goal => (
+                                    <label key={goal.macro_name}>
+                                        {goal.macro_name} ({goal.unit})
+                                        <input
+                                            type="number"
+                                            name={`macro_${goal.macro_name}`}
+                                            step="0.1" // Allow decimal values for all macros
+                                            value={customFoodMacros[goal.macro_name] || 0}
+                                            onChange={e => handleMacroChange(goal.macro_name, parseFloat(e.target.value) || 0)}
+                                            min="0"
+                                            onFocus={(e) => {
+                                                if (e.target.value === '0') {
+                                                    e.target.value = ''; // Clear the 0 on focus
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                ))}
+                                <label>
+                                    Category
+                                    <select name="category" required>
+                                        <option value="">Select Category</option>
+                                        {categories.map(category => (
+                                            <option key={category.id} value={category.name}>
+                                                {category.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </label>
+                                <button type="button" onClick={() => setShowCategoryModal(true)}>
+                                    Manage Categories
+                                </button>
+                                <button type="submit">Add Food</button>
+                                <button type="button" onClick={() => setShowAddFoodModal(false)}>Cancel</button>
+                            </form>
+                        </div>
+                    </>
+                )
+            }
+
+            {
+                showCategoryModal && (
+                    <>
+                        <div className="modal-backdrop" onClick={() => setShowCategoryModal(false)} />
+                        <div className="modal" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                            <h3>Manage Categories</h3>
+                            <div className="category-modal-content">
+                                <div className="new-category-section">
+                                    <label>
+                                        New Category
+                                        <input
+                                            type="text"
+                                            value={newCategory}
+                                            onChange={e => setNewCategory(e.target.value)}
+                                            placeholder="Enter new category"
+                                        />
+                                    </label>
+                                    <button onClick={addCategory}>Add Category</button>
+                                </div>
+                                <ul>
+                                    {categories.map(category => (
+                                        <li key={category.id}>
+                                            {editingCategory && editingCategory.id === category.id ? (
+                                                <>
+                                                    <input
+                                                        type="text"
+                                                        value={editingCategory.name}
+                                                        onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                                                    />
+                                                    <button className="save-btn" onClick={editCategory}>Save</button>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <span>{category.name}</span>
+                                                    <div className="category-actions">
+                                                        <button className="edit-btn" onClick={() => setEditingCategory(category)}>Edit</button>
+                                                        <button className="delete-btn" onClick={() => deleteCategory(category.id)}>Delete</button>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </li>
+                                    ))}
+                                </ul>
+                                <button
+                                    className="close-btn"
+                                    onClick={() => {
+                                        setShowCategoryModal(false);
+                                        setEditingCategory(null);
+                                        setNewCategory('');
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )
+            }
+        </div >
     );
 };
 

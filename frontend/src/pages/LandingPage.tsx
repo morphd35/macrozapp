@@ -3,7 +3,11 @@ import { Link } from 'react-router-dom';
 import logoFull from '../assets/images/logo-full-nb.png'; // Import the full logo
 import './LandingPage.css';
 
-const LandingPage: React.FC = () => {
+interface LandingPageProps {
+    onInstallClick: (() => void) | null; // Add prop type for onInstallClick
+}
+
+const LandingPage: React.FC<LandingPageProps> = ({ onInstallClick }) => {
     return (
         <div className="landing-page">
             {/* Hero Section */}
@@ -20,6 +24,12 @@ const LandingPage: React.FC = () => {
                         <Link to="/signup" className="cta-button secondary">
                             Sign Up
                         </Link>
+                        {/* Add Install App button if onInstallClick is available */}
+                        {onInstallClick && (
+                            <button onClick={onInstallClick} className="cta-button install">
+                                Install App
+                            </button>
+                        )}
                     </div>
                     <a href="#about" className="learn-more">
                         Learn More

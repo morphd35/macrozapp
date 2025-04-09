@@ -9,13 +9,21 @@ const axiosInstance = axios.create({
 axiosInstance.interceptors.request.use(
     (config: InternalAxiosRequestConfig): InternalAxiosRequestConfig => {
         const token = localStorage.getItem('token');
+        // console.log('Request URL:', config.url);
+        // console.log('Token in axios interceptor:', token);
         if (token) {
+
             config.headers = config.headers || {};
             config.headers['Authorization'] = `Bearer ${token}`;
+            // console.log('Authorization header set:', config.headers['Authorization']);
+
+        } else {
+            // console.log('No token found in localStorage for request:', config.url); // Debug log
         }
         return config;
     },
     (error: AxiosError) => {
+        console.error('Request interceptor error:', error.message);
         return Promise.reject(error);
     }
 );
@@ -24,7 +32,9 @@ axiosInstance.interceptors.request.use(
 axiosInstance.interceptors.response.use(
     (response: AxiosResponse): AxiosResponse => response,
     (error: AxiosError) => {
+        // console.log('Response error status:', error.response?.status);
         if (error.response?.status === 401) {
+            console.log('401 Unauthorized - Removing token and user_id from localStorage');
             localStorage.removeItem('token');
             localStorage.removeItem('user_id');
             // Optionally redirect to login page (uncomment if needed)

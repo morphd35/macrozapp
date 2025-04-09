@@ -117,12 +117,12 @@ router.get('/foods', async (req, res) => {
         const foods = await db('foods')
             .where({ user_id: userId })
             .select('*');
-        console.log('Fetched foods for user_id:', userId, foods);
+        // console.log('Fetched foods for user_id:', userId, foods);
 
         const foodMacros = await db('food_macros')
             .whereIn('food_id', foods.map(food => food.id))
             .select('*');
-        console.log('Fetched food macros for user_id:', userId, foodMacros);
+        // console.log('Fetched food macros for user_id:', userId, foodMacros);
 
         const foodsWithMacros = foods.map(food => {
             const macros = foodMacros.filter(m => m.food_id === food.id);

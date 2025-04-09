@@ -13,19 +13,39 @@ const Login: React.FC = () => {
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
+    const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('Submitting login:', { username, password });
+        // console.log('Submitting login:', { username, password });
         try {
             const response = await axiosInstance.post('/api/login', { username, password });
-            console.log('Login success:', response.data);
+            // console.log('Login success:', response.data);
             const { token } = response.data;
             localStorage.setItem('token', token);
             // Decode the token to get user_id
-            const decoded: { id: number; username: string } = jwtDecode(token); // Should now work with named import
+            const decoded: {
+                id: number;
+                username: string;
+                is_paid: boolean;
+                is_paid_onetime: boolean
+            } = jwtDecode(token); // Should now work with named import
+
             localStorage.setItem('user_id', decoded.id.toString());
+            localStorage.setItem('is_paid', decoded.is_paid.toString());
+            localStorage.setItem('is_paid_onetime', decoded.is_paid_onetime.toString());
+
+            // Subscription prompt for one-time payment users
+            if (decoded.is_paid_onetime && !decoded.is_paid) {
+                let loginCount = parseInt(localStorage.getItem('login_count') || '0');
+                loginCount += 1;
+                localStorage.setItem('login_count', loginCount.toString());
+                if (loginCount % 5 === 0) {
+                    setShowSubscriptionPrompt(true);
+                }
+            }
+
             navigate('/app/dashboard');
         } catch (err) {
             console.error('Login error:', err);
@@ -33,9 +53,9 @@ const Login: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        console.log('Login component mounted');
-    }, []);
+    // useEffect(() => {
+    //     console.log('Login component mounted');
+    // }, []);
 
     return (
         <div className="form-wrapper">
@@ -84,6 +104,13 @@ const Login: React.FC = () => {
                     {error && <p style={{ color: 'red' }}>{error}</p>}
                     <button type="submit">Login</button>
                 </form>
+                {showSubscriptionPrompt && (
+                    <div className="subscription-prompt">
+                        <p>Upgrade to a subscription for more features!</p>
+                        <Link to="/payment">Learn More</Link>
+                        <button onClick={() => setShowSubscriptionPrompt(false)}>Not Now</button>
+                    </div>
+                )}
                 <p>
                     Forgot your password? <Link to="/reset-password">Reset Password</Link>
                 </p>

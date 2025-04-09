@@ -7,6 +7,10 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import MenuIcon from '@mui/icons-material/Menu';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
 
 interface FoodMacro {
     macro_name: string;
@@ -39,6 +43,16 @@ interface MacroGoal {
 
 interface ErrorResponse {
     error?: string;
+    message?: string; // Add the message property
+    details?: string; // Optional: include details for other error responses
+}
+
+interface TokenPayload {
+    id: number;
+    username?: string;
+    iat?: number;
+    exp?: number;
+    [key: string]: any; // Allow additional fields
 }
 
 const FoodMaintenance: React.FC = () => {
@@ -80,7 +94,7 @@ const FoodMaintenance: React.FC = () => {
             const response = await axiosInstance.get<Food[]>('/api/foods/foods', {
                 params: { user_id: decoded.id },
             });
-            console.log('Fetched foods:', response.data);
+            // console.log('Fetched foods:', response.data);
             setFoods(response.data);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
@@ -96,7 +110,7 @@ const FoodMaintenance: React.FC = () => {
         try {
             setLoading(true);
             const response = await axiosInstance.get<Category[]>('/api/categories');
-            console.log('Fetched categories:', response.data);
+            // console.log('Fetched categories:', response.data);
             setCategories(response.data);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
@@ -118,7 +132,7 @@ const FoodMaintenance: React.FC = () => {
             const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
             setLoading(true);
             const response = await axiosInstance.get<MacroGoal[]>(`/api/food_logs/goals/${decoded.id}`);
-            console.log('Fetched goals:', response.data);
+            // console.log('Fetched goals:', response.data);
             setGoals(response.data);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
@@ -211,7 +225,7 @@ const FoodMaintenance: React.FC = () => {
             try {
                 setLoading(true);
                 const response = await axiosInstance.post<Food>('/api/foods/foods', foodData);
-                console.log('Add Food Response:', response.data);
+                // console.log('Add Food Response:', response.data);
                 setFoods(prevFoods => [...prevFoods, response.data]);
                 await fetchFoods();
                 setShowAddModal(false);
@@ -257,7 +271,7 @@ const FoodMaintenance: React.FC = () => {
 
         try {
             setLoading(true);
-            console.log('Editing food with id:', editingFood.id, 'for user_id:', decoded.id);
+            // console.log('Editing food with id:', editingFood.id, 'for user_id:', decoded.id);
             const response = await axiosInstance.put<Food>(`/api/foods/foods/${editingFood.id}`, updatedFood);
             setFoods(prevFoods => prevFoods.map(f => (f.id === editingFood.id ? response.data : f)));
             await fetchFoods();
@@ -282,13 +296,23 @@ const FoodMaintenance: React.FC = () => {
         if (foodToDelete === null) return;
         const token = localStorage.getItem('token');
         if (!token) {
-            setError('User not authenticated.');
+            toast.error('User not authenticated.');
             return;
         }
-        const decoded: { id: number } = JSON.parse(atob(token.split('.')[1]));
+        let decoded: TokenPayload;
+        try {
+            decoded = JSON.parse(atob(token.split('.')[1]));
+            if (!decoded.id || typeof decoded.id !== 'number') {
+                throw new Error('Invalid token payload: missing or invalid user ID');
+            }
+        } catch (err) {
+            console.error('Error decoding token:', err);
+            toast.error('Invalid token. Please log in again.');
+            return;
+        }
         try {
             setLoading(true);
-            console.log('Deleting food with id:', foodToDelete, 'for user_id:', decoded.id); // Add this log
+            // console.log('Deleting food with id:', foodToDelete, 'for user_id:', decoded.id);
             await axiosInstance.delete(`/api/foods/foods/${foodToDelete}`, {
                 params: { user_id: decoded.id },
             });
@@ -296,11 +320,14 @@ const FoodMaintenance: React.FC = () => {
             await fetchFoods();
             setShowDeleteModal(false);
             setFoodToDelete(null);
-            setSuccess('Food deleted successfully!');
+            toast.success('Food deleted successfully!');
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
             console.error('Delete Food Error:', error.response?.data || error.message);
-            setError(error.response?.data?.error || 'Failed to delete food.');
+            console.log('Raw error response:', error.response);
+            console.log('Error response data:', error.response?.data);
+            const errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || 'Failed to delete food.';
+            toast.error(errorMessage);
         } finally {
             setLoading(false);
         }
@@ -311,13 +338,13 @@ const FoodMaintenance: React.FC = () => {
     };
 
     const filteredFoods = useMemo(() => {
-        console.log('Filtering foods:', { searchTerm, selectedCategory, totalFoods: foods.length });
+        // console.log('Filtering foods:', { searchTerm, selectedCategory, totalFoods: foods.length });
         const filtered = foods.filter(food => {
             const matchesCategory = !selectedCategory || food.category === selectedCategory;
             const matchesSearch = !searchTerm || food.name.toLowerCase().includes(searchTerm.toLowerCase());
             return matchesCategory && matchesSearch;
         });
-        console.log('Filtered foods:', filtered);
+        // console.log('Filtered foods:', filtered);
         return filtered;
     }, [foods, selectedCategory, searchTerm]);
 
@@ -336,6 +363,7 @@ const FoodMaintenance: React.FC = () => {
 
     return (
         <div className="food-maintenance">
+            <ToastContainer />
             <div className="mobile-nav">
                 <MenuIcon className="hamburger-menu" onClick={() => setIsMenuOpen(!isMenuOpen)} />
                 {isMenuOpen && (
@@ -388,7 +416,7 @@ const FoodMaintenance: React.FC = () => {
                         placeholder="Search..."
                         value={searchTerm}
                         onChange={(e) => {
-                            console.log('Search term changed:', e.target.value);
+                            // console.log('Search term changed:', e.target.value);
                             setSearchTerm(e.target.value);
                         }}
                         className="search-box"
@@ -410,7 +438,11 @@ const FoodMaintenance: React.FC = () => {
                         <span>Actions</span>
                     </div>
                     {filteredFoods.map((food) => (
-                        <div key={food.id} className={`food-table-row ${expandedRows.includes(food.id) ? 'expanded' : ''}`} style={{ gridTemplateColumns: `2fr 1fr ${displayedMacros.map(() => '1fr').join(' ')} 1fr 2.5fr` }}>
+                        <div key={food.id}
+                            className={`food-table-row ${expandedRows.includes(food.id) ? 'expanded' : ''}`}
+                            style={{ gridTemplateColumns: `2fr 1fr ${displayedMacros.map(() => '1fr').join(' ')} 1fr 2.5fr` }}
+                            onClick={() => toggleRow(food.id)} // Make the entire row clickable
+                        >
                             <span>{food.name}</span>
                             <span>{food.serving_size}</span>
                             {displayedMacros.map(macro => (
@@ -420,7 +452,8 @@ const FoodMaintenance: React.FC = () => {
                             <span>
                                 <EditIcon
                                     className="edit-icon"
-                                    onClick={() => {
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent row click from triggering
                                         setEditingFood(food);
                                         setShowEditModal(true);
                                     }}
@@ -428,19 +461,23 @@ const FoodMaintenance: React.FC = () => {
                                 />
                                 <DeleteIcon
                                     className="delete-icon"
-                                    onClick={() => confirmDelete(food.id)}
+                                    onClick={(e) => {
+                                        e.stopPropagation(); // Prevent row click from triggering
+                                        confirmDelete(food.id);
+                                    }}
                                     style={{ cursor: 'pointer', color: '#e74c3c', fontSize: '1rem' }}
                                 />
-                                {window.innerWidth <= 767 && (
-                                    <ExpandMoreIcon
-                                        className="expand-icon"
-                                        onClick={() => toggleRow(food.id)}
-                                        style={{ cursor: 'pointer', color: '#2c3e50', fontSize: '1rem' }}
-                                    />
-                                )}
+                                <ExpandMoreIcon
+                                    className="expand-icon"
+                                    style={{ cursor: 'pointer', color: '#2c3e50', fontSize: '1rem' }}
+                                />
                             </span>
-                            {expandedRows.includes(food.id) && window.innerWidth <= 767 && (
+                            {expandedRows.includes(food.id) && (
                                 <div className="mobile-details">
+                                    <div className="macro-detail">
+                                        <span>Food:</span>
+                                        <span>{food.name}</span>
+                                    </div>
                                     {displayedMacros.map(macro => (
                                         <div key={macro} className="macro-detail">
                                             <span>{macro.charAt(0).toUpperCase() + macro.slice(1)} ({goals.find(g => g.macro_name.toLowerCase() === macro)?.unit || 'g'}):</span>

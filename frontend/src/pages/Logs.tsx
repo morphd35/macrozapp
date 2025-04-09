@@ -2,8 +2,25 @@ import React, { useState, useEffect, useMemo } from 'react';
 import axiosInstance from '../utils/axiosConfig';
 import { jwtDecode } from 'jwt-decode';
 
+// Hook to detect screen size
+const useMediaQuery = (query: string) => {
+    const [matches, setMatches] = useState<boolean>(false);
+
+    useEffect(() => {
+        const media = window.matchMedia(query);
+        setMatches(media.matches);
+
+        const listener = (e: MediaQueryListEvent) => setMatches(e.matches);
+        media.addEventListener('change', listener);
+        return () => media.removeEventListener('change', listener);
+    }, [query]);
+
+    return matches;
+};
+
 // Raw API response type
 interface ApiFoodLog {
+    log_id: number;
     name: string;
     serving_size: string;
     servings: number;
@@ -21,6 +38,7 @@ interface FoodLogMacro {
 }
 
 interface FoodLogDetail {
+    log_id: number;
     name: string;
     serving_size: string;
     servings: number;
@@ -41,7 +59,7 @@ interface MacroGoal {
 // Type for summary data (used in foodLogs state)
 interface FoodLogSummary {
     log_date: string;
-    [key: string]: number | string; // Allows log_date as string, others as numbers
+    [key: string]: number | string;
 }
 
 interface WeightLog {
@@ -55,7 +73,7 @@ const Logs: React.FC = () => {
     const [timeRange, setTimeRange] = useState<'day' | 'week' | 'range'>('day');
     const [selectedDate, setSelectedDate] = useState<string>(() => {
         const today = new Date();
-        return today.toISOString().split('T')[0]; // Ensures YYYY-MM-DD format
+        return today.toISOString().split('T')[0];
     });
     const [startDate, setStartDate] = useState<string>('');
     const [endDate, setEndDate] = useState<string>('');
@@ -63,10 +81,13 @@ const Logs: React.FC = () => {
     const [weightLogs, setWeightLogs] = useState<WeightLog[]>([]);
     const [detailedLogs, setDetailedLogs] = useState<FoodLogDetail[]>([]);
     const [selectedLogDate, setSelectedLogDate] = useState<string | null>(null);
-    const [userId, setUserId] = useState<number | null>(null); // Dynamic userId
-    const [error, setError] = useState<string>(''); // Error state for token issues
-    const [goals, setGoals] = useState<MacroGoal[]>([]); // Store user macro goals
-    const [showAllMacros, setShowAllMacros] = useState<boolean>(false); // Toggle for showing all macros
+    const [userId, setUserId] = useState<number | null>(null);
+    const [error, setError] = useState<string>('');
+    const [goals, setGoals] = useState<MacroGoal[]>([]);
+    const [showAllMacros, setShowAllMacros] = useState<boolean>(false);
+
+    // Use media query to detect mobile view
+    const isMobile = useMediaQuery('(max-width: 768px)');
 
     // Define the main macros to prioritize
     const mainMacros = ['calories', 'protein', 'carbs', 'fats', 'sugars'] as const;
@@ -115,7 +136,7 @@ const Logs: React.FC = () => {
     }, [logType, timeRange, selectedDate, startDate, endDate, selectedLogDate, userId, goals]);
 
     const fetchLogs = async () => {
-        if (!userId) return; // Wait until userId is resolved
+        if (!userId) return;
         try {
             let url = '';
             if (logType === 'food') {
@@ -134,10 +155,11 @@ const Logs: React.FC = () => {
 
                         // Build detailed logs
                         const existingLog = detailedLogs.find(
-                            d => d.log_date === logDate && d.name === log.name && d.servings === log.servings
+                            d => d.log_id === log.log_id
                         );
                         if (!existingLog) {
                             detailedLogs.push({
+                                log_id: log.log_id,
                                 name: log.name,
                                 serving_size: log.serving_size,
                                 servings: log.servings,
@@ -179,10 +201,11 @@ const Logs: React.FC = () => {
 
                         // Build detailed logs
                         const existingLog = detailedLogs.find(
-                            d => d.log_date === logDate && d.name === log.name && d.servings === log.servings
+                            d => d.log_id === log.log_id
                         );
                         if (!existingLog) {
                             detailedLogs.push({
+                                log_id: log.log_id,
                                 name: log.name,
                                 serving_size: log.serving_size,
                                 servings: log.servings,
@@ -248,17 +271,17 @@ const Logs: React.FC = () => {
     // Limit the number of displayed macros to 5 by default, prioritizing main macros
     const maxDisplayedMacros = 5;
     const displayedMacros = useMemo(() => {
-        if (showAllMacros) return allTrackedMacros; // Show all macros when toggled
+        if (showAllMacros) return allTrackedMacros;
         const trackedMainMacros = allTrackedMacros.filter(macro => mainMacros.includes(macro as (typeof mainMacros)[number]));
         const remainingSlots = maxDisplayedMacros - trackedMainMacros.length;
         const additionalMacros = allTrackedMacros
             .filter(macro => !mainMacros.includes(macro as (typeof mainMacros)[number]))
             .slice(0, remainingSlots);
         return [...trackedMainMacros, ...additionalMacros];
-    }, [allTrackedMacros, mainMacros, showAllMacros]); // Ensure showAllMacros triggers recomputation
+    }, [allTrackedMacros, mainMacros, showAllMacros]);
 
-    console.log('showAllMacros:', showAllMacros); // Debug log to confirm state change
-    console.log('displayedMacros:', displayedMacros); // Debug log to confirm macro selection
+    console.log('showAllMacros:', showAllMacros);
+    console.log('displayedMacros:', displayedMacros);
 
     if (!userId && !error) {
         return <div>Loading...</div>;
@@ -316,7 +339,7 @@ const Logs: React.FC = () => {
                         <button
                             className="toggle-macros-btn"
                             onClick={() => {
-                                console.log('Toggling showAllMacros from', showAllMacros, 'to', !showAllMacros); // Debug log
+                                console.log('Toggling showAllMacros from', showAllMacros, 'to', !showAllMacros);
                                 setShowAllMacros(!showAllMacros);
                             }}
                         >
@@ -362,33 +385,57 @@ const Logs: React.FC = () => {
                                 </div>
                                 {selectedLogDate === log.log_date && (
                                     <div className="table-container">
-                                        <div className="data-table-header">
-                                            <span className="header-cell sticky food-name-column">Food Name</span>
-                                            {allTrackedMacros.map((macro: string) => (
-                                                <span
-                                                    key={macro}
-                                                    className="header-cell"
-                                                    title={`${macro.charAt(0).toUpperCase() + macro.slice(1)} (${goals.find(g => g.macro_name.toLowerCase() === macro)?.unit || ''})`}
-                                                >
-                                                    {macro.charAt(0).toUpperCase() + macro.slice(1)}
-                                                    {goals.find(g => g.macro_name.toLowerCase() === macro)?.unit && (
-                                                        <span className="unit">({goals.find(g => g.macro_name.toLowerCase() === macro)?.unit})</span>
-                                                    )}
-                                                </span>
-                                            ))}
-                                        </div>
+                                        {/* Show headers only on larger screens */}
+                                        {!isMobile && (
+                                            <div className="data-table-header">
+                                                <span className="header-cell sticky food-name-column">Food Name</span>
+                                                {allTrackedMacros.map((macro: string) => (
+                                                    <span
+                                                        key={macro}
+                                                        className="header-cell"
+                                                        title={`${macro.charAt(0).toUpperCase() + macro.slice(1)} (${goals.find(g => g.macro_name.toLowerCase() === macro)?.unit || ''})`}
+                                                    >
+                                                        {macro.charAt(0).toUpperCase() + macro.slice(1)}
+                                                        {goals.find(g => g.macro_name.toLowerCase() === macro)?.unit && (
+                                                            <span className="unit">({goals.find(g => g.macro_name.toLowerCase() === macro)?.unit})</span>
+                                                        )}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                         {detailedLogs
                                             .filter(detail => detail.log_date === log.log_date)
-                                            .map((detail, detailIndex) => (
-                                                <div key={detailIndex} className="data-table-row">
+                                            .map((detail) => (
+                                                <div key={detail.log_id} className="data-table-row">
                                                     <span className="data-cell sticky food-name-column">
                                                         {detail.name} ({detail.serving_size} x {detail.servings})
                                                     </span>
-                                                    {allTrackedMacros.map((macro: string) => (
-                                                        <span key={macro} className="data-cell" data-label={macro.charAt(0).toUpperCase() + macro.slice(1)}>
-                                                            {formatNumber(detail.macros.find(m => m.macro_name.toLowerCase() === macro)?.total_value)}
-                                                        </span>
-                                                    ))}
+                                                    {isMobile ? (
+                                                        // Mobile view: List layout without data-cell class
+                                                        <div className="macro-list">
+                                                            {allTrackedMacros.map((macro: string) => {
+                                                                const macroValue = detail.macros.find(m => m.macro_name.toLowerCase() === macro)?.total_value;
+                                                                if (macroValue === undefined || macroValue === null) return null;
+                                                                return (
+                                                                    <div key={macro} className="macro-item">
+                                                                        <span className="macro-label">
+                                                                            {macro.charAt(0).toUpperCase() + macro.slice(1)} ({goals.find(g => g.macro_name.toLowerCase() === macro)?.unit || ''}):
+                                                                        </span>
+                                                                        <span className="macro-value">
+                                                                            {formatNumber(macroValue)}
+                                                                        </span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        // Desktop view: Grid layout
+                                                        allTrackedMacros.map((macro: string) => (
+                                                            <span key={macro} className="data-cell" data-label={macro.charAt(0).toUpperCase() + macro.slice(1)}>
+                                                                {formatNumber(detail.macros.find(m => m.macro_name.toLowerCase() === macro)?.total_value)}
+                                                            </span>
+                                                        ))
+                                                    )}
                                                 </div>
                                             ))}
                                     </div>

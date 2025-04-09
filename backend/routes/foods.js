@@ -135,19 +135,19 @@ router.get('/foods', async (req, res) => {
         const foods = await db('foods')
             .where({ user_id: userId })
             .select('*');
-        console.log('Fetched foods for user_id:', userId, foods);
+        // console.log('Fetched foods for user_id:', userId, foods);
 
         const foodMacros = await db('food_macros')
             .whereIn('food_id', foods.map(food => food.id))
             .select('*');
-        console.log('Fetched food macros for user_id:', userId, foodMacros);
+        // console.log('Fetched food macros for user_id:', userId, foodMacros);
 
         const foodsWithMacros = foods.map(food => {
             const macros = foodMacros.filter(m => m.food_id === food.id);
             return { ...food, macros };
         });
 
-        console.log('Foods with macros to return for user_id:', userId, foodsWithMacros);
+        // console.log('Foods with macros to return for user_id:', userId, foodsWithMacros);
         res.json(foodsWithMacros);
     } catch (err) {
         console.error('Error fetching foods:', err.message, err.stack);
@@ -238,7 +238,7 @@ router.put('/foods/:id', async (req, res) => {
 });
 
 // Delete a food item
-// Delete a food item
+// In routes/foods.js
 router.delete('/foods/:id', async (req, res) => {
     const { id } = req.params;
     const userId = parseInt(req.query.user_id);
@@ -258,17 +258,36 @@ router.delete('/foods/:id', async (req, res) => {
 
     try {
         const db = req.app.get('db');
+
+        // Check if the food exists and belongs to the user
         console.log('Checking for existing food with id:', parsedId, 'and user_id:', userId);
         const query = db('foods')
             .where({ id: parsedId, user_id: userId })
             .first();
-        console.log('Raw query:', query.toSQL().toNative()); // Log the raw SQL query
+        console.log('Raw query:', query.toSQL().toNative());
         const existingFood = await query;
         console.log('Existing food:', existingFood);
         if (!existingFood) {
             return res.status(404).json({ error: 'Food not found or not owned by user' });
         }
 
+        // Check if the food has associated food_logs entries
+        console.log('Checking for associated food_logs entries for food id:', parsedId);
+        const logCount = await db('food_logs')
+            .where({ food_id: parsedId, user_id: userId })
+            .count('id as count')
+            .first();
+        console.log('Food logs count:', logCount.count);
+
+        if (logCount.count > 0) {
+            return res.status(400).json({
+                error: 'Cannot delete food',
+                message: 'This food cannot be deleted because it is referenced in your food logs. Deleting it would alter your historical data.',
+            });
+        }
+
+        // If no food_logs entries exist, proceed with deletion
+        console.log('Deleting associated food_macros for food id:', parsedId);
         await db('food_macros').where('food_id', parsedId).del();
 
         console.log('Deleting food with id:', parsedId, 'and user_id:', userId);
@@ -276,6 +295,7 @@ router.delete('/foods/:id', async (req, res) => {
             .where({ id: parsedId, user_id: userId })
             .del();
         console.log('Deleted count:', deletedCount);
+
         if (deletedCount === 0) {
             return res.status(404).json({ error: 'Food not found' });
         }

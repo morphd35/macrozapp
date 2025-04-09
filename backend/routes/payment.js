@@ -77,7 +77,7 @@ router.get('/me', checkAuth, (req, res) => {
 router.post('/create-checkout-session', checkAuth, async (req, res) => {
     try {
         console.log('Creating checkout session for one-time payment');
-        console.log('Stripe Price ID:', 'price_1R5m8LBQIfCheXjYffWYhT57'); // Log the Price ID for debugging
+        console.log('Stripe Price ID:', 'price_1RC4eDBa8HVRsYMjwAaWfBHI'); // Log the Price ID for debugging
         console.log('FRONTEND_BASE_URL:', process.env.FRONTEND_BASE_URL); // Confirm the URL
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ['card'],

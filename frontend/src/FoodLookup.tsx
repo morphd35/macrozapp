@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import axiosInstance from './utils/axiosConfig';
 import { AxiosError } from 'axios';
 import SearchIcon from '@mui/icons-material/Search';
@@ -28,6 +28,7 @@ interface FoodLookupProps {
     onSearchResults: (results: FoodItem[], query: string) => void;
     userFoods: FoodItem[];
     query: string;
+    setQuery: (query: string) => void;
     error: string;
     setError: (error: string) => void;
 }
@@ -36,10 +37,16 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
     onSearchResults,
     userFoods,
     query,
+    setQuery,
     error,
     setError,
 }) => {
     const [searchQuery, setSearchQuery] = useState<string>(query);
+
+    // Sync local state with prop changes
+    useEffect(() => {
+        setSearchQuery(query);
+    }, [query]);
 
     const handleSearch = useCallback(async () => {
         console.log('handleSearch triggered with query:', searchQuery);
@@ -52,11 +59,11 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
 
         try {
             setError('');
-            console.log('Making API call to /api/auth/food-lookup');
-            const response = await axiosInstance.get<FoodItem[]>('/api/auth/food-lookup', {
+            console.log('Making API call to /api/premium_1/food-lookup');
+            const response = await axiosInstance.get<FoodItem[]>('/api/premium_1/food-lookup', {
                 params: { query: searchQuery },
             });
-            console.log('Raw response from /api/auth/food-lookup:', response.data);
+            console.log('Raw response from /api/premium_1/food-lookup:', response.data);
             const apiResults = response.data.map((food: FoodItem) => {
                 const isVegetable = food.category?.toLowerCase().includes('vegetable') || food.label?.toLowerCase().includes('bean');
                 const isMeat = food.category?.toLowerCase().includes('protein') || food.label?.toLowerCase().includes('chicken') || food.label?.toLowerCase().includes('beef');
@@ -107,7 +114,11 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
                     type="text"
                     placeholder="Search for a food (e.g., avocado)"
                     value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onChange={(e) => {
+                        const newQuery = e.target.value;
+                        setSearchQuery(newQuery);
+                        setQuery(newQuery); // Update Dashboard's query
+                    }}
                     onKeyPress={(e) => {
                         if (e.key === 'Enter') {
                             handleSearch();

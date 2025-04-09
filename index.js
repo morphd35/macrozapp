@@ -15,9 +15,9 @@ const allowedOrigins = [
 
 const corsOptions = {
     origin: (origin, callback) => {
-        console.log('CORS check - Origin:', origin);
+        // console.log('CORS check - Origin:', origin);
         if (!origin || allowedOrigins.includes(origin)) {
-            console.log('CORS allowed for:', origin);
+            // console.log('CORS allowed for:', origin);
             callback(null, true);
         } else {
             console.log('CORS rejected:', origin);
@@ -36,20 +36,20 @@ app.use(express.json());
 
 // Add this right after app.use(express.json())
 app.use((req, res, next) => {
-    console.log(`Received ${req.method} request to ${req.url} with headers:`, req.headers);
+    // console.log(`Received ${req.method} request to ${req.url} with headers:`, req.headers);
     next();
 });
 
 
 
 app.use((req, res, next) => {
-    console.log(`Incoming ${req.method} request to ${req.url} with body:`, req.body);
+    // console.log(`Incoming ${req.method} request to ${req.url} with body:`, req.body);
     next();
 });
 
 app.use((req, res, next) => {
     if (req.path === '/login' && req.method === 'POST') {
-        console.log('Redirecting /login to /api/login');
+        // console.log('Redirecting /login to /api/login');
         req.url = '/api/login'; // Replace, don’t append
     }
     next();
@@ -72,11 +72,11 @@ app.use((req, res, next) => {
 });
 
 require('dotenv').config();
-console.log('JWT_SECRET:', process.env.JWT_SECRET);
+// console.log('JWT_SECRET:', process.env.JWT_SECRET);
 
 const isProduction = process.env.NODE_ENV === 'production';
 process.env.FRONTEND_BASE_URL = isProduction ? 'https://macrozapp.com' : 'http://localhost:3001';
-console.log('FRONTEND_BASE_URL set to:', process.env.FRONTEND_BASE_URL);
+// console.log('FRONTEND_BASE_URL set to:', process.env.FRONTEND_BASE_URL);
 const dbConfig = isProduction ? 'production' : 'development';
 const db = knex(require('./knexfile')[dbConfig]);
 app.set('db', db);
@@ -91,34 +91,34 @@ const paymentRoutes = require('./routes/payment');
 try {
     const loginRoutes = require('./routes/login'); // Define here
     app.use('/api/login', (req, res, next) => {
-        console.log(`API Login ${req.method} request received:`, {
-            url: req.url,
-            headers: req.headers,
-            body: req.body,
-        });
+        // console.log(`API Login ${req.method} request received:`, {
+        //     url: req.url,
+        //     headers: req.headers,
+        //     body: req.body,
+        // });
         next();
     });
     app.use('/api/login', loginRoutes);
-    console.log('Login route mounted at /api/login');
+    // console.log('Login route mounted at /api/login');
 } catch (err) {
     console.error('Error loading login route:', err);
 }
 
 const signupRoutes = require('./routes/signup');
 app.use('/api/signup', signupRoutes);
-console.log('Signup route mounted at /api/signup');
+// console.log('Signup route mounted at /api/signup');
 
 const resetPasswordRoutes = require('./routes/reset-password');
 app.use('/api/reset-password', resetPasswordRoutes);
-console.log('Reset password route mounted at /api/reset-password');
+// console.log('Reset password route mounted at /api/reset-password');
 
 const resetPasswordConfirmRoutes = require('./routes/reset-password-confirm');
 app.use('/api/reset-password-confirm', resetPasswordConfirmRoutes);
-console.log('Reset password confirm route mounted at /api/reset-password-confirm');
+// console.log('Reset password confirm route mounted at /api/reset-password-confirm');
 
 
 app.use('/api/premium_1', premiumRoutes);
-console.log('Auth routes (including /me) mounted at /api/auth');
+// console.log('Auth routes (including /me) mounted at /api/auth');
 
 app.use('/api/auth', paymentRoutes);
 
@@ -132,7 +132,7 @@ app.use('/api/weight_logs', weightLogsRoutes);
 app.use('/api/categories', categoriesRoutes);
 
 app.use((req, res, next) => {
-    console.log(`Incoming ${req.method} request to ${req.url} with headers:`, req.headers, 'body:', req.body);
+    // console.log(`Incoming ${req.method} request to ${req.url} with headers:`, req.headers, 'body:', req.body);
     next();
 });
 
@@ -148,11 +148,11 @@ app.use(express.static('frontend/build', {
     index: false, // Disable index.html fallback for API routes
     redirect: false, // Disable redirects
     setHeaders: (res, path, stat) => {
-        console.log(`Serving static file: ${path}`); // Debug log
+        // console.log(`Serving static file: ${path}`); // Debug log
     }
 }));
 
-console.log('Registered routes:');
+// console.log('Registered routes:');
 
 // app.get('/', (req, res) => {
 //     res.json({ message: 'Macrozapp Backend API' });
@@ -165,7 +165,7 @@ app._router.stack.forEach((middleware) => {
         const fullPath = middleware.route.path.startsWith('/')
             ? middleware.route.path
             : '/' + middleware.route.path;
-        console.log(`${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${fullPath}`);
+        // console.log(`${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${fullPath}`);
     } else if (middleware.name === 'router' && middleware.regexp) {
         middleware.handle.stack.forEach((handler) => {
             if (handler.route) {
@@ -183,11 +183,11 @@ app._router.stack.forEach((middleware) => {
 app.get('/test', (req, res) => res.send('Test route working'));
 app.post('/test-post', (req, res) => res.json({ message: 'POST test successful', body: req.body }));
 app.all('*', (req, res) => {
-    console.log(`404 - Cannot ${req.method} ${req.path}`); // Debug log
+    // console.log(`404 - Cannot ${req.method} ${req.path}`); // Debug log
     res.status(404).send(`Cannot ${req.method} ${req.path}`);
 });
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    // console.log(`Server running on port ${PORT}`);
 });

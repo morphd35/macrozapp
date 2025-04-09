@@ -238,7 +238,7 @@ router.put('/foods/:id', async (req, res) => {
 });
 
 // Delete a food item
-// Delete a food item
+// In routes/foods.js
 router.delete('/foods/:id', async (req, res) => {
     const { id } = req.params;
     const userId = parseInt(req.query.user_id);
@@ -279,7 +279,6 @@ router.delete('/foods/:id', async (req, res) => {
             .first();
         console.log('Food logs count:', logCount.count);
 
-        const count = parseInt(logCount.count, 10);
         if (logCount.count > 0) {
             return res.status(400).json({
                 error: 'Cannot delete food',
@@ -512,7 +511,7 @@ router.post('/food_logs', async (req, res) => {
             .where('food_id', food_id)
             .select('macro_name', 'value', 'unit');
 
-        // console.log('Fetched food macros:', foodMacros);
+        console.log('Fetched food macros:', foodMacros);
 
         if (!foodMacros.length) {
             return res.status(404).json({ error: 'Food macros not found' });

@@ -304,7 +304,7 @@ router.post('/create-checkout-session', checkAuth, async (req, res) => {
             payment_method_types: ['card'],
             line_items: [
                 {
-                    price: 'price_1R5m6zBQIfCheXjYUOdY9Pxs', // Price ID from Stripe Dashboard
+                    price: 'price_1RC4gGBa8HVRsYMjx9oFqDU3', // Price ID from Stripe Dashboard
                     quantity: 1,
                 },
             ],

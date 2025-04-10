@@ -225,6 +225,7 @@ const Dashboard: React.FC = () => {
             try {
                 const decoded: { id: number; username: string } = jwtDecode(token);
                 setUserId(decoded.id);
+                console.log('Set userId from token:', decoded.id);
                 localStorage.setItem('user_id', decoded.id.toString());
             } catch (err) {
                 console.error('Error decoding token:', err);
@@ -234,6 +235,9 @@ const Dashboard: React.FC = () => {
             }
         } else {
             setError('No token found. Please log in.');
+            setUserId(null);
+            setGoals([]);
+            setDailySummary(null);
         }
     }, [token]);
 
@@ -243,12 +247,18 @@ const Dashboard: React.FC = () => {
 
     useEffect(() => {
         if (userId) {
+            console.log('UserId before fetching data:', userId);
             fetchDailySummary();
             if (!hasFetchedInitialData) {
                 fetchGoals();
                 fetchFoods();
                 fetchCategories();
                 setHasFetchedInitialData(true);
+            }
+            else {
+                console.log('No userId, skipping data fetch');
+                setGoals([]);
+                setDailySummary(null);
             }
         }
     }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, hasFetchedInitialData, logDate]);

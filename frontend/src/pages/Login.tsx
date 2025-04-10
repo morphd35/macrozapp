@@ -1,11 +1,10 @@
 // frontend/src/pages/Login.tsx
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import axiosInstance from '../utils/axiosConfig';
+import React, { useState, useContext } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faEye, faEyeSlash } from '@fortawesome/free-solid-svg-icons';
 import { jwtDecode } from 'jwt-decode'; // Import jwt-decode
+import { AuthContext } from '../context/AuthContext'; // Adjust the import path as necessary
 import '../App.css';
 
 const Login: React.FC = () => {
@@ -15,37 +14,41 @@ const Login: React.FC = () => {
     const [error, setError] = useState('');
     const [showSubscriptionPrompt, setShowSubscriptionPrompt] = useState(false);
     const navigate = useNavigate();
+    const { login, logout } = useContext(AuthContext);
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setError('');
         // console.log('Submitting login:', { username, password });
         try {
-            const response = await axiosInstance.post('/api/login', { username, password });
-            // console.log('Login success:', response.data);
-            const { token } = response.data;
-            localStorage.setItem('token', token);
-            // Decode the token to get user_id
-            const decoded: {
-                id: number;
-                username: string;
-                is_paid: boolean;
-                is_paid_onetime: boolean
-            } = jwtDecode(token); // Should now work with named import
+            // Log out to clear any existing token
+            logout();
 
-            localStorage.setItem('user_id', decoded.id.toString());
-            localStorage.setItem('is_paid', decoded.is_paid.toString());
-            localStorage.setItem('is_paid_onetime', decoded.is_paid_onetime.toString());
+            // Perform login using AuthContext
+            await login(username, password);
 
-            // Subscription prompt for one-time payment users
-            if (decoded.is_paid_onetime && !decoded.is_paid) {
-                let loginCount = parseInt(localStorage.getItem('login_count') || '0');
-                loginCount += 1;
-                localStorage.setItem('login_count', loginCount.toString());
-                if (loginCount % 5 === 0) {
-                    setShowSubscriptionPrompt(true);
+            // Check subscription prompt for one-time payment users
+            const token = localStorage.getItem('token');
+            if (token) {
+                const decoded: {
+                    id: number;
+                    username: string;
+                    is_paid: boolean;
+                    is_paid_onetime: boolean;
+                } = jwtDecode(token);
+
+                if (decoded.is_paid_onetime && !decoded.is_paid) {
+                    let loginCount = parseInt(localStorage.getItem('login_count') || '0');
+                    loginCount += 1;
+                    localStorage.setItem('login_count', loginCount.toString());
+                    if (loginCount % 5 === 0) {
+                        setShowSubscriptionPrompt(true);
+                        return; // Show prompt before redirecting
+                    }
                 }
             }
 
+            // Redirect to Dashboard
             navigate('/app/dashboard');
         } catch (err) {
             console.error('Login error:', err);

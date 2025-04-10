@@ -36,15 +36,16 @@ interface AuthProviderProps {
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
+    const [isInitialized, setIsInitialized] = useState(false);
 
     // Function to fetch user data from /api/auth/me
-    const fetchUserData = async () => {
-        if (!token) return;
+    const fetchUserData = async (currentToken: string) => {
+        if (!currentToken) return;
         try {
-            console.log('Fetching user data with token:', token);
+            console.log('Fetching user data with token:', currentToken);
             console.log('Request URL:', `${API_BASE_URL}/api/auth/me`);
             const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
-                headers: { Authorization: `Bearer ${token}` },
+                headers: { Authorization: `Bearer ${currentToken}` },
             });
             console.log('Raw response from /api/auth/me:', response.data);
             const userData = {
@@ -65,23 +66,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         }
     };
 
+    // Initialize token from localStorage on mount
+    useEffect(() => {
+        const storedToken = localStorage.getItem('token');
+        console.log('Token in localStorage on mount:', storedToken);
+        if (storedToken) {
+            setToken(storedToken);
+            fetchUserData(storedToken);
+        } else {
+            console.log('No token found in localStorage on mount');
+            setUser(null);
+        }
+        setIsInitialized(true);
+    }, []);
+
     // Fetch user data on mount or when token changes
     useEffect(() => {
-        console.log('Token in localStorage on mount or update:', token);
-        if (token) {
-            fetchUserData();
-        } else {
-            console.log('No token found in localStorage on mount or update');
+        if (isInitialized && token) {
+            fetchUserData(token);
         }
-    }, [token]);
+    }, [token, isInitialized]);
 
-    const login = async (email: string, password: string) => {
+    const login = async (username: string, password: string) => {
         try {
-            const response = await axios.post(`${API_BASE_URL}/api/login`, { email, password });
+            // Clear existing token and user data
+            localStorage.removeItem('token');
+            setToken(null);
+            setUser(null);
+            // Perform login
+            const response = await axios.post(`${API_BASE_URL}/api/login`, { username, password });
             const { token } = response.data;
             console.log('Login response:', response.data);
+            // Update localStorage and state
             localStorage.setItem('token', token);
             setToken(token);
+            // Immediately fetch user data with the new token
+            await fetchUserData(token);
         } catch (error: unknown) {
             const axiosError = error as AxiosError;
             console.error('Login error:', axiosError.response?.status, axiosError.response?.data || axiosError.message);
@@ -99,7 +119,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Expose a function to refresh user data
     const refreshUser = async () => {
         if (token) {
-            await fetchUserData();
+            await fetchUserData(token);
         }
     };
 

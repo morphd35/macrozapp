@@ -123,8 +123,8 @@ router.get('/food-lookup', checkAuth, checkPaidUser, async (req, res) => {
 
     try {
         console.log('Edamam Food Database API credentials:', {
-            app_id: process.env.EDAMAM_FOOD_DATABASE_APP_ID,
-            app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY,
+            app_id: process.env.EDAMAM_FOOD_DATABASE_APP_ID ? 'Set' : 'Not Set',
+            app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY ? 'Set' : 'Not Set',
         });
         console.log('Query sent to Edamam API:', query);
 
@@ -135,42 +135,67 @@ router.get('/food-lookup', checkAuth, checkPaidUser, async (req, res) => {
                     app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY,
                     ingr: query,
                 },
-                timeout: 5000,
+                timeout: 10000,
             });
         });
 
+        if (!parserResponse.data || !parserResponse.data.hints) {
+            console.error('Unexpected Edamam response structure:', parserResponse.data);
+            return res.status(502).json({ message: 'Invalid response from Edamam API.' });
+        }
+
         console.log('Edamam /parser API response:', parserResponse.data);
-        const foods = parserResponse.data.hints.map(hint => {
-            const food = hint.food;
-            console.log(`Processing food: ${food.label}, Measures:`, hint.measures); // Debug log
-            console.log(`Nutrients for ${food.label}:`, food.nutrients); // Debug log
-            return {
-                foodId: food.foodId,
-                label: food.label,
-                category: food.category,
-                nutrients: {
-                    calories: food.nutrients?.ENERC_KCAL || 0,
-                    protein: food.nutrients?.PROCNT || 0,
-                    carbs: food.nutrients?.CHOCDF || 0,
-                    fats: food.nutrients?.FAT || 0,
-                },
-                measures: hint.measures,
-            };
-        });
+        const nutrientMap = {
+            calories: 'ENERC_KCAL',
+            protein: 'PROCNT',
+            carbs: 'CHOCDF',
+            fats: 'FAT',
+            sugars: 'SUGAR',
+            sodium: 'NA',
+            cholesterol: 'CHOLE',
+            potassium: 'K',
+            calcium: 'CA',
+            caffeine: 'CAFFEINE',
+        };
+
+        const foods = parserResponse.data.hints
+            .map(hint => {
+                const food = hint.food;
+                console.log(`Processing food: ${food.label}, Measures:`, hint.measures);
+                console.log(`Nutrients for ${food.label}:`, food.nutrients);
+
+                // Check if food.nutrients exists; if not, log and return a default
+                if (!food.nutrients) {
+                    console.warn(`Food item "${food.label}" (foodId: ${food.foodId}) is missing nutrients. Skipping this item.`);
+                    return null; // Skip this food item
+                }
+
+                const nutrients = {};
+                Object.keys(nutrientMap).forEach(key => {
+                    nutrients[key] = food.nutrients[nutrientMap[key]] || 0;
+                });
+
+                return {
+                    foodId: food.foodId,
+                    label: food.label,
+                    category: food.category,
+                    nutrients,
+                    measures: hint.measures,
+                };
+            })
+            .filter(item => item !== null); // Remove null entries
 
         if (!foods || foods.length === 0) {
-            return res.status(404).json({ message: 'No food items found for this query.' });
+            return res.status(404).json({ message: 'No food items found with valid nutrient data for this query.' });
         }
 
         res.json(foods);
     } catch (error) {
-        console.error('Error fetching food data:', error.message);
+        console.error('Error fetching food data:', error.message, error.stack);
         console.error('Error details:', error.response ? error.response.data : error);
         res.status(500).json({ message: 'Error fetching food data.', details: error.message });
     }
 });
-
-// Add this after the /food-lookup endpoint in payment.js
 
 router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
     console.log('POST /food-nutrients endpoint reached');
@@ -259,7 +284,8 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
         // Filter nutrients based on user goals
         const nutrients = {};
         goals.forEach(goal => {
-            const nutrientKey = nutrientMap[goal.macro_name.toLowerCase()];
+            const normalizedMacroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');
+            const nutrientKey = nutrientMap[normalizedMacroKey];
             if (nutrientKey && totalNutrients[nutrientKey]) {
                 nutrients[goal.macro_name] = {
                     value: totalNutrients[nutrientKey].quantity,
@@ -278,7 +304,7 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
             serving_size: `${quantity} ${measure}`,
             category: parsedFood.category || 'Generic',
             macros: Object.entries(nutrients).map(([macro_name, { value, unit }]) => ({
-                macro_name,
+                macro_name: macro_name.toLowerCase().replace(/\s+/g, '_'),
                 value,
                 unit,
             })),

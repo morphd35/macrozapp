@@ -242,14 +242,16 @@ const Dashboard: React.FC = () => {
     // });
 
     useEffect(() => {
-        if (userId && !hasFetchedInitialData) {
+        if (userId) {
             fetchDailySummary();
-            fetchGoals();
-            fetchFoods();
-            fetchCategories();
-            setHasFetchedInitialData(true);
+            if (!hasFetchedInitialData) {
+                fetchGoals();
+                fetchFoods();
+                fetchCategories();
+                setHasFetchedInitialData(true);
+            }
         }
-    }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, hasFetchedInitialData]);
+    }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, hasFetchedInitialData, logDate]);
 
     // Refetch user data if payment was just verified
     useEffect(() => {
@@ -336,7 +338,7 @@ const Dashboard: React.FC = () => {
         if (foodName && servingSize && category) {
             try {
                 const macros = goals.map(goal => ({
-                    macro_name: goal.macro_name,
+                    macro_name: goal.macro_name.toLowerCase().replace(/\s+/g, '_'),
                     value: customFoodMacros[goal.macro_name] || 0,
                     unit: goal.unit,
                 }));
@@ -350,7 +352,7 @@ const Dashboard: React.FC = () => {
                 });
                 // console.log('Add Food Response:', res.data);
                 const newFood = { ...res.data, custom: true };
-                setFoods(prevFoods => [...prevFoods, newFood]);
+                setFoods(prevFoods => [...prevFoods, { ...res.data, custom: true }]);
                 await fetchFoods(); // Re-fetch to ensure consistency
                 setShowAddFoodModal(false);
                 setCustomFoodMacros(goals.reduce((acc, goal) => {
@@ -384,7 +386,7 @@ const Dashboard: React.FC = () => {
                 let newFoodData;
 
                 // For paid users with a new Edamam food (not yet in the foods table and not custom), fetch goal-specific nutrients
-                if (stableUser?.isPaid && food.name.endsWith('(Edamam)') && !food.custom) {
+                if (stableUser?.isPaid && food.id === -1 && !food.custom) {
                     const payload = {
                         foodId: food.foodId,
                         quantity: servings,
@@ -472,7 +474,7 @@ const Dashboard: React.FC = () => {
         }
 
         // Update searchResults with Edamam results (or empty array if none found)
-        setSearchResults(uniqueResults);
+        setSearchResults(uniqueResults.map(item => ({ ...item, custom: false })));
     }, []);
 
     // useEffect(() => {
@@ -496,9 +498,17 @@ const Dashboard: React.FC = () => {
                     protein: food.macros.find(m => m.macro_name === 'protein')?.value || 0,
                     carbs: food.macros.find(m => m.macro_name === 'carbs')?.value || 0,
                     fats: food.macros.find(m => m.macro_name === 'fats')?.value || 0,
+                    sugars: food.macros.find(m => m.macro_name === 'sugars')?.value || 0,
+                    water_intake: food.macros.find(m => m.macro_name === 'water_intake')?.value || 0,
+                    sodium: food.macros.find(m => m.macro_name === 'sodium')?.value || 0,
+                    cholesterol: food.macros.find(m => m.macro_name === 'cholesterol')?.value || 0,
+                    potassium: food.macros.find(m => m.macro_name === 'potassium')?.value || 0,
+                    calcium: food.macros.find(m => m.macro_name === 'calcium')?.value || 0,
+                    caffeine: food.macros.find(m => m.macro_name === 'caffeine')?.value || 0,
                 },
                 serving_size: food.serving_size,
-                custom: !food.name.endsWith('(Edamam)'),
+                custom: true,
+
             };
             // console.log('Mapped food:', mappedFood);
             return mappedFood;
@@ -526,7 +536,9 @@ const Dashboard: React.FC = () => {
 
         try {
             // Check if the food already exists locally
-            const existingFood = foods.find(f => f.user_id === userId && f.name === `${label} (Edamam)`);
+            // For local foods, label already includes "(Edamam)" if applicable; for Edamam foods, it does not
+            const searchName = custom ? label : `${label} (Edamam)`;
+            const existingFood = foods.find(f => f.user_id === userId && f.name === searchName);
             let selected: Food;
 
             if (existingFood) {
@@ -535,10 +547,8 @@ const Dashboard: React.FC = () => {
             } else {
                 // Initialize macros based on user's goals
                 const initialMacros = goals.map(goal => {
-                    const value = goal.macro_name === 'calories' ? nutrients.calories :
-                        goal.macro_name === 'protein' ? nutrients.protein :
-                            goal.macro_name === 'carbs' ? nutrients.carbs :
-                                goal.macro_name === 'fats' ? nutrients.fats : 0;
+                    const macroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');
+                    const value = nutrients[macroKey] || 0;
                     return {
                         macro_name: goal.macro_name,
                         value,
@@ -660,7 +670,8 @@ const Dashboard: React.FC = () => {
                     <div className="card">
                         <h2>Daily Totals ({logDate})</h2>
                         {goals.map(goal => {
-                            const currentValue = dailySummary[`total_${goal.macro_name.toLowerCase()}`];
+                            const macroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');
+                            const currentValue = dailySummary[`total_${macroKey}`];
                             return (
                                 <div key={goal.id} className="progress-item">
                                     <p>
@@ -668,8 +679,8 @@ const Dashboard: React.FC = () => {
                                     </p>
                                     <div className="progress-bar">
                                         <div
-                                            className={`progress-fill ${calculateProgress(currentValue, goal.target_value, goal.goal_type).status}`}
-                                            style={{ width: `${calculateProgress(currentValue, goal.target_value, goal.goal_type).percentage}%` }}
+                                            className={`progress-fill ${calculateProgress(currentValue, goal.target_value, goal.goal_type).status} `}
+                                            style={{ width: `${calculateProgress(currentValue, goal.target_value, goal.goal_type).percentage}% ` }}
                                         ></div>
                                     </div>
                                 </div>
@@ -774,7 +785,7 @@ const Dashboard: React.FC = () => {
                                     <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
                                         {searchResults.map((food) => (
                                             <li
-                                                key={`${food.foodId}-${food.source}`}
+                                                key={`${food.foodId} -${food.source} `}
                                                 style={{
                                                     padding: '12px',
                                                     borderBottom: '1px solid #eee',
@@ -809,7 +820,7 @@ const Dashboard: React.FC = () => {
                                     <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
                                         {filteredLocalFoods.map((food) => (
                                             <li
-                                                key={`${food.foodId}-local`}
+                                                key={`${food.foodId} -local`}
                                                 style={{
                                                     padding: '12px',
                                                     borderBottom: '1px solid #eee',
@@ -960,7 +971,7 @@ const Dashboard: React.FC = () => {
                                         {goal.macro_name} ({goal.unit})
                                         <input
                                             type="number"
-                                            name={`macro_${goal.macro_name}`}
+                                            name={`macro_${goal.macro_name} `}
                                             step="0.1" // Allow decimal values for all macros
                                             value={customFoodMacros[goal.macro_name] || 0}
                                             onChange={e => handleMacroChange(goal.macro_name, parseFloat(e.target.value) || 0)}

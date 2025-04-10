@@ -73,10 +73,13 @@ const Goals: React.FC = () => {
             return;
         }
 
+        // Normalize macro_name: lowercase, replace spaces with underscores
+        const normalizedMacroName = newGoal.macro_name.toLowerCase().replace(/\s+/g, '_');
+
         try {
             const response = await axiosInstance.post('/api/food_logs/goals', {
                 user_id: userId,
-                macro_name: newGoal.macro_name,
+                macro_name: normalizedMacroName,
                 target_value: newGoal.target_value,
                 unit: newGoal.unit,
                 goal_type: newGoal.goal_type,

@@ -216,7 +216,8 @@ router.get('/:user_id/:date', async (req, res) => {
         // Get the macros the user is tracking
         const trackedMacrosRaw = await db('user_macro_goals')
             .where('user_id', parsedUserId)
-            .pluck('macro_name');
+            .pluck('macro_name')
+            .then(macros => macros.map(macro => macro.toLowerCase().replace(/\s+/g, '_')));
 
         // console.log('Raw tracked macros result:', trackedMacrosRaw);
 
@@ -241,7 +242,7 @@ router.get('/:user_id/:date', async (req, res) => {
         const foodLogs = await db('food_logs')
             .join('foods', 'food_logs.food_id', 'foods.id')
             .where('food_logs.user_id', parsedUserId)
-            .andWhere('food_logs.log_date', date)
+            .andWhere(db.raw('DATE(food_logs.log_date) = ?', [date]))
             .andWhere('foods.user_id', parsedUserId) // Filter foods by user_id
             .select('food_logs.id');
 

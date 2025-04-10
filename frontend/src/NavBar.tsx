@@ -17,7 +17,6 @@ const NavBar: React.FC = () => {
     // Close menu when clicking outside on mobile
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            // Check if the menu is open and the click is outside the nav-links and hamburger icon
             if (
                 isMenuOpen &&
                 navLinksRef.current &&
@@ -28,16 +27,14 @@ const NavBar: React.FC = () => {
             }
         };
 
-        // Add event listener when the menu is open
         if (isMenuOpen) {
             document.addEventListener('click', handleClickOutside);
         }
 
-        // Clean up the event listener when the menu closes or component unmounts
         return () => {
             document.removeEventListener('click', handleClickOutside);
         };
-    }, [isMenuOpen]); // Re-run effect when isMenuOpen changes
+    }, [isMenuOpen]);
 
     const toggleMenu = () => {
         setIsMenuOpen((prev) => !prev);
@@ -51,31 +48,25 @@ const NavBar: React.FC = () => {
 
     return (
         <nav className="nav-bar">
-            {/* Wrapper for logo and hamburger icon */}
             <div className="nav-logo">
                 <img src={logoFull} alt="Macrozapp Logo" className="nav-logo-img" />
             </div>
             <div className="nav-header">
-
-
-
                 <div className="hamburger-icon" onClick={toggleMenu}>
-                    <span></span>
+                    <span></span>.
+
                     <span></span>
                     <span></span>
                 </div>
             </div>
 
-            {/* Navigation Links */}
             <div className={`nav-links ${isMenuOpen ? 'open' : ''}`} ref={navLinksRef}>
                 <ul>
                     <li>
                         <NavLink
                             to="/app/dashboard"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={() => {
-                                toggleMenu();
-                            }}
+                            onClick={toggleMenu}
                         >
                             Dashboard
                         </NavLink>
@@ -84,9 +75,7 @@ const NavBar: React.FC = () => {
                         <NavLink
                             to="/app/goals"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={() => {
-                                toggleMenu();
-                            }}
+                            onClick={toggleMenu}
                         >
                             Goals
                         </NavLink>
@@ -95,9 +84,7 @@ const NavBar: React.FC = () => {
                         <NavLink
                             to="/app/food-maintenance"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={() => {
-                                toggleMenu();
-                            }}
+                            onClick={toggleMenu}
                         >
                             Food Maintenance
                         </NavLink>
@@ -106,11 +93,18 @@ const NavBar: React.FC = () => {
                         <NavLink
                             to="/app/logs"
                             className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
-                            onClick={() => {
-                                toggleMenu();
-                            }}
+                            onClick={toggleMenu}
                         >
                             Logs
+                        </NavLink>
+                    </li>
+                    <li>
+                        <NavLink
+                            to="/app/settings"
+                            className={({ isActive }) => `nav-button ${isActive ? 'active' : ''}`}
+                            onClick={toggleMenu}
+                        >
+                            Settings
                         </NavLink>
                     </li>
                     <li>

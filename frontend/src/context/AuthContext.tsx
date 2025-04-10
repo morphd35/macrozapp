@@ -11,6 +11,7 @@ interface User {
     isPaid: boolean;
     is_admin: boolean;
     isPaidOneTime: boolean;
+    subscription_status?: string;
 }
 
 interface AuthContextType {
@@ -43,17 +44,18 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         if (!currentToken) return;
         try {
             console.log('Fetching user data with token:', currentToken);
-            console.log('Request URL:', `${API_BASE_URL}/api/auth/me`);
-            const response = await axios.get(`${API_BASE_URL}/api/auth/me`, {
+            console.log('Request URL:', `${API_BASE_URL}/api/premium_1/me`);
+            const response = await axios.get(`${API_BASE_URL}/api/premium_1/me`, {
                 headers: { Authorization: `Bearer ${currentToken}` },
             });
-            console.log('Raw response from /api/auth/me:', response.data);
+            console.log('Raw response from /api/premium_1/me:', response.data);
             const userData = {
                 id: response.data.id,
                 email: response.data.email,
                 isPaid: response.data.isPaid === true || response.data.is_paid === true || response.data.isPaid === 'true' || response.data.is_paid === 'true',
                 is_admin: response.data.is_admin === true || response.data.is_admin === 'true',
                 isPaidOneTime: response.data.isPaidOneTime === true || response.data.isPaidOneTime === 'true',
+                subscription_status: response.data.subscription_status,
             };
             console.log('User data from /api/auth/me:', userData);
             setUser(userData);

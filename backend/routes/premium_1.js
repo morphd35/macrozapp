@@ -110,6 +110,9 @@ router.get('/me', checkAuth, (req, res) => {
         id: req.user.id,
         email: req.user.email,
         isPaid: req.user.is_paid, // Use is_paid from PostgreSQL
+        is_admin: req.user.is_admin,
+        isPaidOneTime: req.user.is_paid_one_time || false, // Adjust based on your schema
+        subscription_status: req.user.subscription_status,
     });
 });
 
@@ -365,8 +368,12 @@ router.get('/verify-payment', checkAuth, async (req, res) => {
             const db = req.app.get('db');
             await db('users')
                 .where({ id: req.user.id })
-                .update({ is_paid: true });
-            res.json({ success: true });
+                .update({
+                    is_paid: true,
+                    stripe_subscription_id: session.subscription,
+                    subscription_status: 'active', // Set initial status
+                });
+            res.json({ success: true, stripe_subscription_id: session.subscription });
         } else {
             res.status(400).json({ message: 'Payment not completed or subscription not created.' });
         }
@@ -394,6 +401,98 @@ router.post('/admin/set-paid', checkAdmin, async (req, res) => {
         console.error('Error setting isPaid:', error);
         res.status(500).json({ message: 'Error setting isPaid.' });
     }
+});
+
+// Cancel subscription endpoint
+router.post('/cancel-subscription', checkAuth, async (req, res) => {
+    try {
+        console.log('POST /cancel-subscription route handler reached');
+        const db = req.app.get('db');
+        const userId = req.user.id;
+
+        // Fetch the user's subscription ID
+        const user = await db('users')
+            .where({ id: userId })
+            .select('stripe_subscription_id', 'is_paid')
+            .first();
+
+        if (!user || !user.stripe_subscription_id) {
+            return res.status(404).json({ message: 'No active subscription found.' });
+        }
+
+        if (!user.is_paid) {
+            return res.status(400).json({ message: 'You are not currently subscribed.' });
+        }
+
+        // Cancel subscription at period end
+        const subscription = await stripe.subscriptions.update(user.stripe_subscription_id, {
+            cancel_at_period_end: true,
+        });
+
+        // Update DB to reflect cancellation intent
+        await db('users')
+            .where({ id: userId })
+            .update({ subscription_status: 'cancel_pending' });
+
+        res.json({
+            message: 'Subscription set to cancel at the end of the billing period.',
+            subscription: {
+                id: subscription.id,
+                status: subscription.status,
+                cancel_at: subscription.cancel_at,
+            },
+        });
+    } catch (error) {
+        console.error('Error canceling subscription:', error);
+        res.status(500).json({ message: 'Error canceling subscription.', details: error.message });
+    }
+});
+
+// Webhook to handle subscription updates
+router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+        event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.error('Webhook signature verification failed:', err);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    const db = req.app.get('db');
+
+    if (event.type === 'customer.subscription.updated') {
+        const subscription = event.data.object;
+        const user = await db('users')
+            .where({ stripe_subscription_id: subscription.id })
+            .first();
+
+        if (user && subscription.cancel_at_period_end && subscription.status === 'active') {
+            // Subscription is still active but set to cancel at period end
+            await db('users')
+                .where({ id: user.id })
+                .update({ subscription_status: 'cancel_pending' });
+        } else if (user && subscription.status === 'canceled') {
+            // Subscription has fully ended
+            await db('users')
+                .where({ id: user.id })
+                .update({ is_paid: false, subscription_status: 'canceled' });
+        }
+    } else if (event.type === 'customer.subscription.deleted') {
+        const subscription = event.data.object;
+        const user = await db('users')
+            .where({ stripe_subscription_id: subscription.id })
+            .first();
+
+        if (user) {
+            await db('users')
+                .where({ id: user.id })
+                .update({ is_paid: false, subscription_status: 'canceled' });
+        }
+    }
+
+    res.json({ received: true });
 });
 
 module.exports = router;

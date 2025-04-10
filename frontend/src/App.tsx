@@ -17,6 +17,7 @@ import ResetPassword from './pages/ResetPassword';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import ResetPasswordConfirm from './pages/ResetPasswordConfirm';
+import Settings from './pages/SettingsPage'
 import './App.css';
 
 // AppLayout remains unchanged
@@ -29,6 +30,7 @@ const AppLayout = () => (
         <Route path="goals" element={<Goals />} />
         <Route path="food-maintenance" element={<FoodMaintenance />} />
         <Route path="logs" element={<Logs />} />
+        <Route path="settings" element={<Settings />} /> {/* Add Settings */}
         <Route path="*" element={<Navigate to="dashboard" replace />} />
       </Routes>
     </main>

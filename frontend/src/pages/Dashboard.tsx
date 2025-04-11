@@ -404,7 +404,7 @@ const Dashboard: React.FC = () => {
             return;
         }
 
-        const finalServings = Math.max(1, servings); // Ensure at least 1 when logging
+        const finalServings = Math.max(0.1, servings); // Ensure at least 1 when logging
 
         try {
             let foodToLog: Food;
@@ -428,7 +428,7 @@ const Dashboard: React.FC = () => {
                 const newFoodData = {
                     user_id: userId,
                     name: foodItem.label ? foodItem.label.split(' - ')[0] : (food as Food).name.split(' - ')[0] || 'Unknown Food',
-                    serving_size: foodItem.serving_size || (food as Food).serving_size || '4 oz',
+                    serving_size: foodItem.serving_size || (food as Food).serving_size || '1 serving', // Use the scaled serving_size
                     category: foodItem.category || (food as Food).category || 'Generic',
                     macros,
                 };
@@ -605,7 +605,7 @@ const Dashboard: React.FC = () => {
 
     const handleFoodSelect = async (data: FoodItem) => {
         console.log('handleFoodSelect called with data:', data);
-        const { foodId, label, category, custom, source } = data;
+        const { foodId, label, category, custom, source, serving_size } = data;
         if (!userId) {
             console.error('No userId available for selecting food');
             setError('User not authenticated. Please log in again.');
@@ -644,6 +644,18 @@ const Dashboard: React.FC = () => {
                         foodId,
                     };
                 } else {
+                    // Parse the serving size from the search result (e.g., "4 oz")
+                    const { unit, amount } = parseQuery(label);
+                    let targetQuantity = 1;
+                    let targetMeasure = 'serving';
+
+                    if (unit === 'oz' && amount) {
+                        targetQuantity = amount;
+                        targetMeasure = 'ounce';
+                    } else if (unit === 'cup' && amount) {
+                        targetQuantity = amount;
+                        targetMeasure = 'cup';
+                    }
                     // Edamam food: Fetch detailed nutrients
                     const nutrientsResponse = await axiosInstance.post<{
                         foodId: string;
@@ -664,7 +676,7 @@ const Dashboard: React.FC = () => {
                         id: -1,
                         user_id: userId,
                         name: `${label} (Edamam)`,
-                        serving_size: serving_size || data.serving_size || '1 serving',
+                        serving_size: serving_size || '1 serving', // Use the scaled serving_size from handleSearchResults
                         category: fetchedCategory || category || 'Generic',
                         macros: macros.map((macro: FoodMacro) => ({
                             macro_name: macro.macro_name.toLowerCase().replace(/\s+/g, '_'),
@@ -947,7 +959,7 @@ const Dashboard: React.FC = () => {
                                             value={servings}
                                             onChange={(e) => {
                                                 const newValue = e.target.value;
-                                                setServings(newValue === '' ? 0 : Math.max(1, parseFloat(newValue) || 1));
+                                                setServings(newValue === '' ? 0 : Math.max(0.1, parseFloat(newValue) || 0.1));
                                             }}
                                             onFocus={(e) => {
                                                 if (servings === 1) {
@@ -960,7 +972,7 @@ const Dashboard: React.FC = () => {
                                                     setServings(1); // Reset to 1 if the user leaves it empty
                                                 }
                                             }}
-                                            min="1"
+
                                             step="0.1"
                                             style={{ marginLeft: '10px', padding: '5px', width: '100px' }}
                                         />

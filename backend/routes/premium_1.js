@@ -212,8 +212,8 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
 
     try {
         const db = req.app.get('db');
-        console.log('Fetching user goals from user_macro_goals table'); // Updated log message
-        const goals = await db('user_macro_goals') // Updated table name
+        console.log('Fetching user goals from user_macro_goals table');
+        const goals = await db('user_macro_goals')
             .where({ user_id: userId })
             .select('macro_name', 'unit');
         console.log('User goals:', goals);
@@ -223,7 +223,6 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
             return res.status(400).json({ message: 'No goals set for this user.' });
         }
 
-        // Map goals to Edamam nutrient codes
         const nutrientMap = {
             calories: 'ENERC_KCAL',
             protein: 'PROCNT',
@@ -235,14 +234,13 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
             sugars: 'SUGAR',
             calcium: 'CA',
             caffeine: 'CAFFEINE',
-            water_intake: null, // Not supported by Edamam
+            water_intake: null,
         };
         console.log('Nutrient map:', nutrientMap);
 
         const nutrientKeys = goals.map(goal => nutrientMap[goal.macro_name.toLowerCase()]).filter(Boolean);
         console.log('Nutrient keys to fetch:', nutrientKeys);
 
-        // Call Edamam /nutrients endpoint
         const payload = {
             ingredients: [
                 {
@@ -284,6 +282,10 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
         const foodName = parsedFood.food;
         console.log('Parsed food name:', foodName);
 
+        // Calculate the total weight of the requested serving
+        const totalWeight = nutrientsResponse.data.totalWeight || 0;
+        console.log('Total weight for quantity:', quantity, measure, '=', totalWeight, 'grams');
+
         // Filter nutrients based on user goals
         const nutrients = {};
         goals.forEach(goal => {
@@ -295,12 +297,11 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
                     unit: totalNutrients[nutrientKey].unit,
                 };
             } else {
-                nutrients[goal.macro_name] = { value: 0, unit: goal.unit }; // Default to 0 if not found
+                nutrients[goal.macro_name] = { value: 0, unit: goal.unit };
             }
         });
         console.log('Filtered nutrients:', nutrients);
 
-        // Prepare response
         const responseData = {
             foodId,
             name: `${foodName} (Edamam)`,
@@ -311,6 +312,7 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
                 value,
                 unit,
             })),
+            totalWeight,
         };
         console.log('Response data:', responseData);
 

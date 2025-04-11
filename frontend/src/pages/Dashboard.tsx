@@ -663,14 +663,15 @@ const Dashboard: React.FC = () => {
                         serving_size: string;
                         category: string;
                         macros: FoodMacro[];
+                        totalWeight: number;
                     }>('/api/premium_1/food-nutrients', {
                         foodId,
-                        quantity: 1,
-                        measure: 'serving',
+                        quantity: targetQuantity,
+                        measure: targetMeasure,
                         userId,
                     });
 
-                    const { name, serving_size, category: fetchedCategory, macros } = nutrientsResponse.data;
+                    const { name, category: fetchedCategory, macros } = nutrientsResponse.data;
 
                     selected = {
                         id: -1,

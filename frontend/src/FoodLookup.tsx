@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback } from 'react';
 import axiosInstance from './utils/axiosConfig';
 import { AxiosError } from 'axios';
 import SearchIcon from '@mui/icons-material/Search';
@@ -29,8 +29,8 @@ interface FoodLookupProps {
     userFoods: FoodItem[];
     query: string;
     setQuery: (query: string) => void;
-    error: string;
-    setError: (error: string) => void;
+    error: string | null;
+    setError: (error: string | null) => void;
 }
 
 const FoodLookup: React.FC<FoodLookupProps> = ({
@@ -41,29 +41,21 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
     error,
     setError,
 }) => {
-    const [searchQuery, setSearchQuery] = useState<string>(query);
-
-    // Sync local state with prop changes
-    useEffect(() => {
-        setSearchQuery(query);
-    }, [query]);
-
-    const handleSearch = useCallback(async () => {
-        console.log('handleSearch triggered with query:', searchQuery);
+    const fetchEdamamResults = useCallback(async (searchQuery: string) => {
         if (!searchQuery.trim()) {
-            console.log('Skipping search: empty query');
-            setError('');
+            onSearchResults([], searchQuery);
+            return;
+        }
+        if (searchQuery.trim().length < 3) {
             onSearchResults([], searchQuery);
             return;
         }
 
         try {
-            setError('');
-            console.log('Making API call to /api/premium_1/food-lookup');
+            setError(null);
             const response = await axiosInstance.get<FoodItem[]>('/api/premium_1/food-lookup', {
                 params: { query: searchQuery },
             });
-            console.log('Raw response from /api/premium_1/food-lookup:', response.data);
             const apiResults = response.data.map((food: FoodItem) => {
                 const isVegetable = food.category?.toLowerCase().includes('vegetable') || food.label?.toLowerCase().includes('bean');
                 const isMeat = food.category?.toLowerCase().includes('protein') || food.label?.toLowerCase().includes('chicken') || food.label?.toLowerCase().includes('beef');
@@ -96,41 +88,39 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
             const uniqueResults = Array.from(
                 new Map<string, FoodItem>(apiResults.map(item => [`${item.foodId}-${item.source}`, item])).values()
             ) as FoodItem[];
-            console.log('Unique API results:', uniqueResults);
             onSearchResults(uniqueResults, searchQuery);
         } catch (err) {
             const axiosError = err as AxiosError<{ message?: string }>;
-            const errorMessage = axiosError.response?.data?.message || 'Failed to fetch food data.';
-            setError(errorMessage);
-            console.error('Error fetching food data:', axiosError.response?.data || axiosError.message);
+            console.error('Edamam fetch error:', axiosError.response?.data || axiosError.message);
             onSearchResults([], searchQuery);
         }
-    }, [onSearchResults, searchQuery, setError]);
+    }, [onSearchResults, setError]);
+
+    const handleSearch = () => {
+        fetchEdamamResults(query); // Trigger search on icon click
+    };
+
+    const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter') {
+            fetchEdamamResults(query); // Trigger search on Enter
+        }
+    };
 
     return (
         <div className="food-lookup">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
                     type="text"
-                    placeholder="Search for a food (e.g., avocado)"
-                    value={searchQuery}
-                    onChange={(e) => {
-                        const newQuery = e.target.value;
-                        setSearchQuery(newQuery);
-                        setQuery(newQuery); // Update Dashboard's query
-                    }}
-                    onKeyPress={(e) => {
-                        if (e.key === 'Enter') {
-                            handleSearch();
-                        }
-                    }}
+                    placeholder="Search for a food (e.g., avocado)..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    onKeyPress={handleKeyPress}
                 />
                 <SearchIcon
                     style={{ cursor: 'pointer', color: '#4a5568' }}
                     onClick={handleSearch}
                 />
             </div>
-            {error && <div style={{ color: 'red' }}>{error}</div>}
         </div>
     );
 };

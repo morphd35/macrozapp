@@ -100,7 +100,7 @@ const Dashboard: React.FC = () => {
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
     const [showLogWeightModal, setShowLogWeightModal] = useState(false);
     const [weight, setWeight] = useState<number>(0);
-    const [error, setError] = useState('');
+    const [error, setError] = useState<string | null>('');
     const [customFoodMacros, setCustomFoodMacros] = useState<{ [key: string]: number }>({}); // Track macro values for the form
     const [searchResults, setSearchResults] = useState<FoodItem[]>([]); // New state for search results
     const [searchQuery, setSearchQuery] = useState<string>(''); // New state for search query
@@ -380,68 +380,70 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // In Dashboard.tsx
-    // In Dashboard.tsx
-    const logFood = async (food: Food, servings: number = 1) => {
+    const parseQuery = (query: string) => {
+        // Match "X oz" or "X cup" (including fractions like "1/2")
+        const ozMatch = query.match(/(\d*\.?\d+|\d+\/\d+)\s*oz/i);
+        const cupMatch = query.match(/(\d*\.?\d+|\d+\/\d+)\s*cup/i);
+
+        if (ozMatch) {
+            const amount = ozMatch[1].includes('/') ? eval(ozMatch[1]) : parseFloat(ozMatch[1]);
+            const foodName = query.replace(ozMatch[0], '').trim();
+            return { unit: 'oz', amount, foodName };
+        } else if (cupMatch) {
+            const amount = cupMatch[1].includes('/') ? eval(cupMatch[1]) : parseFloat(cupMatch[1]);
+            const foodName = query.replace(cupMatch[0], '').trim();
+            return { unit: 'cup', amount, foodName };
+        }
+        return { unit: null, amount: null, foodName: query.trim() };
+    };
+
+    // Log the food selected
+    const logFood = async (food: Food | FoodItem, servings: number = 1) => {
         if (!food || !userId) {
             toast.error('Please select a food and ensure you are logged in.');
             return;
         }
 
+        const finalServings = Math.max(1, servings); // Ensure at least 1 when logging
+
         try {
-            let foodToLog = food;
+            let foodToLog: Food;
 
-            // If the food doesn't have a valid ID (i.e., it's not in the foods table yet), add it
-            if (!food.id || food.id === -1) {
-                let newFoodData;
+            if ('id' in food && food.id && food.id > 0) {
+                foodToLog = food as Food;
+            } else {
+                const foodItem = food as FoodItem;
+                const foodMacros = 'macros' in food ? (food as Food).macros : null;
+                const foodNutrients = 'nutrients' in food ? (food as FoodItem).nutrients : null;
 
-                // For paid users with a new Edamam food (not yet in the foods table and not custom), fetch goal-specific nutrients
-                if (stableUser?.isPaid && food.id === -1 && !food.custom) {
-                    const payload = {
-                        foodId: food.foodId,
-                        quantity: servings,
-                        measure: 'serving',
-                        userId,
-                    };
-                    // console.log('Sending /food-nutrients request with payload:', payload);
-                    const nutrientsResponse = await axiosInstance.post('/api/premium_1/food-nutrients', payload);
-                    // console.log('Nutrients API response:', nutrientsResponse.data);
+                const macros = foodMacros || (foodNutrients ? [
+                    { macro_name: 'calories', value: foodNutrients.calories || 0, unit: 'kcal' },
+                    { macro_name: 'protein', value: foodNutrients.protein || 0, unit: 'g' },
+                    { macro_name: 'carbs', value: foodNutrients.carbs || 0, unit: 'g' },
+                    { macro_name: 'fats', value: foodNutrients.fats || 0, unit: 'g' },
+                    ...(foodNutrients.sugars ? [{ macro_name: 'sugars', value: foodNutrients.sugars, unit: 'g' }] : []),
+                    ...(foodNutrients.sodium ? [{ macro_name: 'sodium', value: foodNutrients.sodium, unit: 'mg' }] : []),
+                ] : []);
 
-                    const { name, serving_size, category, macros } = nutrientsResponse.data;
+                const newFoodData = {
+                    user_id: userId,
+                    name: foodItem.label ? foodItem.label.split(' - ')[0] : (food as Food).name.split(' - ')[0] || 'Unknown Food',
+                    serving_size: foodItem.serving_size || (food as Food).serving_size || '4 oz',
+                    category: foodItem.category || (food as Food).category || 'Generic',
+                    macros,
+                };
 
-                    newFoodData = {
-                        user_id: userId,
-                        name,
-                        serving_size,
-                        category,
-                        macros,
-                    };
-                } else {
-                    // Free users, local foods, or custom foods: use the existing macros
-                    newFoodData = {
-                        user_id: userId,
-                        name: food.name,
-                        serving_size: food.serving_size,
-                        category: food.category,
-                        macros: food.macros,
-                    };
-                }
-
-                // Add to foods table
                 const response = await axiosInstance.post<Food>('/api/food_logs/foods', newFoodData);
-                // console.log('Add Food Response from backend:', response.data);
-                foodToLog = { ...response.data, custom: true, foodId: food.foodId };
+                foodToLog = { ...response.data, custom: true, foodId: foodItem.foodId };
                 setFoods(prevFoods => [...prevFoods, foodToLog]);
             }
 
-            // Log the food to food_logs
-            const response = await axiosInstance.post('/api/food_logs/food_logs', {
+            await axiosInstance.post('/api/food_logs/food_logs', {
                 user_id: userId,
                 food_id: foodToLog.id,
-                servings,
+                servings: finalServings,
                 log_date: logDate,
             });
-            // console.log('Log Food Response:', response.data);
 
             await fetchDailySummary();
             setShowLogModal(false);
@@ -449,6 +451,7 @@ const Dashboard: React.FC = () => {
             setServings(1);
             setSearchResults([]);
             setFoodQuery('');
+            setEdamamError(null);
             toast.success('Food logged successfully!');
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
@@ -472,19 +475,76 @@ const Dashboard: React.FC = () => {
     //     console.log('foodQuery changed:', foodQuery);
     // }, [foodQuery]);
 
+    const [edamamError, setEdamamError] = useState<string | null>(null); // New state for Edamam-specific errors
+
     const handleSearchResults = useCallback((results: FoodItem[], query: string) => {
         const uniqueResults = Array.from(
             new Map(results.map(item => [`${item.foodId}-${item.label}`, item])).values()
         );
-        // console.log('Unique search results:', uniqueResults);
 
-        // If the API call succeeded but returned no results, show a toast message
-        if (uniqueResults.length === 0 && query.trim()) {
-            toast.info('No results found in Edamam for this query. Showing local foods.');
+        if (uniqueResults.length === 0) {
+            if (!query.trim()) {
+                setEdamamError('Please enter a food to search.');
+            } else if (query.trim().length < 3) {
+                setEdamamError('Query too short. Enter at least 3 characters to search Edamam.');
+            } else {
+                setEdamamError('No foods found in Edamam. Check spelling or try a different term.');
+            }
+        } else {
+            setEdamamError(null);
         }
 
-        // Update searchResults with Edamam results (or empty array if none found)
-        setSearchResults(uniqueResults.map(item => ({ ...item, custom: false })));
+        const convertedResults = uniqueResults.map((item: FoodItem) => {
+            const baseWeightGrams = item.weight || parseFloat(item.serving_size || '100') || 100;
+            const baseOunces = baseWeightGrams * 0.035274;
+            const { unit, amount } = parseQuery(query);
+
+            let targetAmount: number, targetUnit: string, targetGrams: number, scaleFactor: number, displayLabel: string;
+
+            if (unit === 'oz' && amount) {
+                targetAmount = amount;
+                targetUnit = 'oz';
+                targetGrams = amount / 0.035274;
+                scaleFactor = targetGrams / baseWeightGrams;
+                displayLabel = `${item.label} - ${amount} oz`;
+            } else if (unit === 'cup' && amount) {
+                targetAmount = amount;
+                targetUnit = 'cup';
+                targetGrams = amount * 240;
+                scaleFactor = targetGrams / baseWeightGrams;
+                displayLabel = `${item.label} - ${amount} cup (${(targetGrams * 0.035274).toFixed(1)} oz)`;
+            } else {
+                targetAmount = 4;
+                targetUnit = 'oz';
+                targetGrams = 4 / 0.035274;
+                scaleFactor = targetGrams / baseWeightGrams;
+                displayLabel = `${item.label} - 4 oz`;
+            }
+
+            const scaledNutrients = {
+                calories: (item.nutrients.calories || 0) * scaleFactor,
+                protein: (item.nutrients.protein || 0) * scaleFactor,
+                carbs: (item.nutrients.carbs || 0) * scaleFactor,
+                fats: (item.nutrients.fats || 0) * scaleFactor,
+                sugars: item.nutrients.sugars ? item.nutrients.sugars * scaleFactor : undefined,
+                water_intake: item.nutrients.water_intake ? item.nutrients.water_intake * scaleFactor : undefined,
+                sodium: item.nutrients.sodium ? item.nutrients.sodium * scaleFactor : undefined,
+                cholesterol: item.nutrients.cholesterol ? item.nutrients.cholesterol * scaleFactor : undefined,
+                potassium: item.nutrients.potassium ? item.nutrients.potassium * scaleFactor : undefined,
+                calcium: item.nutrients.calcium ? item.nutrients.calcium * scaleFactor : undefined,
+                caffeine: item.nutrients.caffeine ? item.nutrients.caffeine * scaleFactor : undefined,
+            };
+
+            return {
+                ...item,
+                label: displayLabel,
+                serving_size: `${targetAmount} ${targetUnit}`,
+                weight: targetGrams,
+                nutrients: scaledNutrients,
+            };
+        });
+
+        setSearchResults(convertedResults as FoodItem[]);
     }, []);
 
     // useEffect(() => {
@@ -526,18 +586,26 @@ const Dashboard: React.FC = () => {
     }, [foods]);
 
     const filteredLocalFoods = useMemo(() => {
-        if (!foodQuery.trim()) return memoizedUserFoods; // Show all local foods if no query
-        return memoizedUserFoods.filter(food =>
-            food.label.toLowerCase().includes(foodQuery.toLowerCase())
-        );
+        if (!foodQuery.trim()) {
+            return memoizedUserFoods.map(food => ({
+                ...food,
+                source: 'local' as const, // Add source field
+            }));
+        }
+        return memoizedUserFoods
+            .filter(food => food.label.toLowerCase().includes(foodQuery.toLowerCase()))
+            .map(food => ({
+                ...food,
+                source: 'local' as const, // Add source field
+            }));
     }, [foodQuery, memoizedUserFoods]);
 
     const [shouldLog, setShouldLog] = useState(true);
 
 
     const handleFoodSelect = async (data: FoodItem) => {
-        // console.log('handleFoodSelect called with data:', data);
-        const { foodId, label, category, nutrients, custom } = data;
+        console.log('handleFoodSelect called with data:', data);
+        const { foodId, label, category, custom, source } = data;
         if (!userId) {
             console.error('No userId available for selecting food');
             setError('User not authenticated. Please log in again.');
@@ -545,41 +613,72 @@ const Dashboard: React.FC = () => {
         }
 
         try {
-            // Check if the food already exists locally
-            // For local foods, label already includes "(Edamam)" if applicable; for Edamam foods, it does not
-            const searchName = custom ? label : `${label} (Edamam)`;
-            const existingFood = foods.find(f => f.user_id === userId && f.name === searchName);
+            const existingFood = foods.find(f => f.user_id === userId && f.name === `${label} (Edamam)`);
             let selected: Food;
 
             if (existingFood) {
-                // console.log('Food already exists in user\'s foods:', existingFood);
+                console.log('Food already exists in user\'s foods:', existingFood);
                 selected = existingFood;
             } else {
-                // Initialize macros based on user's goals
-                const initialMacros = goals.map(goal => {
-                    const macroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');
-                    const value = nutrients[macroKey] || 0;
-                    return {
-                        macro_name: goal.macro_name,
-                        value,
-                        unit: goal.unit,
-                    };
-                });
+                // Check if the food is local (e.g., foodId is numeric for local foods, or add a source field)
+                const isLocalFood = source === 'local'; // Edamam foodIds start with "food_"
 
-                selected = {
-                    id: -1, // New food, not yet in the foods table
-                    user_id: userId,
-                    name: `${label} (Edamam)`,
-                    serving_size: '1 serving',
-                    category,
-                    macros: initialMacros,
-                    custom: custom || false,
-                    foodId, // Store Edamam foodId for the nutrient fetch
-                };
+                if (isLocalFood) {
+                    // Local food: Fetch macros from the database if needed
+                    const response = await axiosInstance.get(`/api/food_logs/foods`, {
+                        params: { user_id: userId },
+                    });
+                    const localFood = response.data.find((f: Food) => f.id === parseInt(foodId));
+                    if (!localFood) {
+                        throw new Error('Local food not found in database');
+                    }
+
+                    selected = {
+                        id: localFood.id,
+                        user_id: userId,
+                        name: localFood.name,
+                        serving_size: localFood.serving_size,
+                        category: localFood.category,
+                        macros: localFood.macros || [], // Use existing macros
+                        custom: true,
+                        foodId,
+                    };
+                } else {
+                    // Edamam food: Fetch detailed nutrients
+                    const nutrientsResponse = await axiosInstance.post<{
+                        foodId: string;
+                        name: string;
+                        serving_size: string;
+                        category: string;
+                        macros: FoodMacro[];
+                    }>('/api/premium_1/food-nutrients', {
+                        foodId,
+                        quantity: 1,
+                        measure: 'serving',
+                        userId,
+                    });
+
+                    const { name, serving_size, category: fetchedCategory, macros } = nutrientsResponse.data;
+
+                    selected = {
+                        id: -1,
+                        user_id: userId,
+                        name: `${label} (Edamam)`,
+                        serving_size: serving_size || data.serving_size || '1 serving',
+                        category: fetchedCategory || category || 'Generic',
+                        macros: macros.map((macro: FoodMacro) => ({
+                            macro_name: macro.macro_name.toLowerCase().replace(/\s+/g, '_'),
+                            value: macro.value,
+                            unit: macro.unit,
+                        })),
+                        custom: custom || false,
+                        foodId,
+                    };
+                }
             }
 
             setSelectedFood(selected);
-            // console.log('Selected food set to:', selected);
+            console.log('Selected food set to:', selected);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
             console.error('Error selecting food:', error.response?.data || error.message);
@@ -736,7 +835,7 @@ const Dashboard: React.FC = () => {
                                         onSearchResults={handleSearchResults}
                                         userFoods={memoizedUserFoods}
                                         query={foodQuery}
-                                        setQuery={setFoodQuery} // Pass setter
+                                        setQuery={setFoodQuery}
                                         error={error}
                                         setError={setError}
                                     />
@@ -751,77 +850,57 @@ const Dashboard: React.FC = () => {
                                     </div>
                                 ) : (
                                     <div className="food-lookup-placeholder">
-                                        <input
-                                            type="text"
-                                            placeholder="Search for a food (e.g., avocado)"
-                                            disabled
-                                        />
-                                        <p>
-                                            Upgrade to Premium for $4.99 to unlock food lookup!{' '}
-                                            <Link to="/payment">Upgrade Now</Link>
-                                        </p>
-                                        <p>
-                                            Or get One-Time Premium ($8.99) for ad-free, private data, and local search!{' '}
-                                            <Link to="/payment-onetime">Buy Now</Link>
-                                        </p>
-                                        <div style={{ marginTop: '10px' }}>
-                                            <label>
-                                                Select a local food to log:
-                                                <select
-                                                    value={selectedFood?.foodId || ''}
-                                                    onChange={(e) => {
-                                                        const selectedFoodId = e.target.value;
-                                                        const food = memoizedUserFoods.find(f => f.foodId === selectedFoodId);
-                                                        handleFoodSelect(food as FoodItem);
-                                                    }}
-                                                    style={{ width: '100%', padding: '8px', marginTop: '5px' }}
-                                                >
-                                                    <option value="">-- Select a food --</option>
-                                                    {memoizedUserFoods.map(food => (
-                                                        <option key={food.foodId} value={food.foodId}>
-                                                            {food.label} ({food.serving_size})
-                                                        </option>
-                                                    ))}
-                                                </select>
-                                            </label>
-                                        </div>
+                                        <input type="text" placeholder="Search for a food (e.g., avocado)" disabled />
+                                        <p>Upgrade to Premium for $4.99 to unlock food lookup! <Link to="/payment">Upgrade Now</Link></p>
                                     </div>
                                 )}
                             </div>
-                            {/* Display Edamam search results */}
-                            {searchResults.length > 0 && (
+
+                            {/* Edamam Search Results */}
+                            {stableUser?.isPaid && (
                                 <div style={{ flex: '1 1 auto', overflowY: 'auto', margin: '10px 0' }}>
-                                    <h4 style={{ margin: '0 0 10px 0' }}>Search Results for "{foodQuery}"</h4>
-                                    <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                                        {searchResults.map((food) => (
-                                            <li
-                                                key={`${food.foodId} -${food.source} `}
-                                                style={{
-                                                    padding: '12px',
-                                                    borderBottom: '1px solid #eee',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    cursor: 'pointer',
-                                                    backgroundColor: selectedFood?.foodId === food.foodId ? '#e0f7fa' : 'transparent',
-                                                    transition: 'background-color 0.2s',
-                                                }}
-                                                onClick={() => handleFoodSelect(food)}
-                                            >
-                                                <div>
-                                                    <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
-                                                    <div style={{ marginTop: '5px' }}>
-                                                        <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
-                                                        <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
-                                                        <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
+                                    <h4 style={{ margin: '0 0 10px 0' }}>
+                                        {foodQuery.trim() ? `Search Results for "${foodQuery}"` : 'Search Results'}
+                                    </h4>
+                                    {edamamError ? (
+                                        <p style={{ color: '#666' }}>{edamamError}</p>
+                                    ) : searchResults.length > 0 ? (
+                                        <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                                            {searchResults.map((food) => (
+                                                <li
+                                                    key={food.foodId}
+                                                    style={{
+                                                        padding: '12px',
+                                                        borderBottom: '1px solid #eee',
+                                                        display: 'flex',
+                                                        justifyContent: 'space-between',
+                                                        alignItems: 'center',
+                                                        cursor: 'pointer',
+                                                        backgroundColor: selectedFood?.foodId === food.foodId ? '#e0f7fa' : 'transparent',
+                                                        transition: 'background-color 0.2s',
+                                                    }}
+                                                    onClick={() => handleFoodSelect(food)}
+                                                >
+                                                    <div>
+                                                        <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
+                                                        <div style={{ marginTop: '5px' }}>
+                                                            <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
+                                                            <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
+                                                            <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p style={{ color: '#666' }}>
+                                            {foodQuery.trim() ? 'Press Enter or click the search icon to search Edamam' : 'Enter a food to search'}
+                                        </p>
+                                    )}
                                 </div>
                             )}
-                            {/* Always display local foods that match the query */}
+
+                            {/* Local Foods */}
                             <div style={{ flex: '1 1 auto', overflowY: 'auto', margin: '10px 0' }}>
                                 <h4 style={{ margin: '0 0 10px 0' }}>
                                     {foodQuery.trim() ? `Local Foods Matching "${foodQuery}"` : 'Your Local Foods'}
@@ -830,7 +909,7 @@ const Dashboard: React.FC = () => {
                                     <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
                                         {filteredLocalFoods.map((food) => (
                                             <li
-                                                key={`${food.foodId} -local`}
+                                                key={food.foodId}
                                                 style={{
                                                     padding: '12px',
                                                     borderBottom: '1px solid #eee',
@@ -855,17 +934,32 @@ const Dashboard: React.FC = () => {
                                         ))}
                                     </ul>
                                 ) : (
-                                    <p>No local foods match your search query.</p>
+                                    <p style={{ color: '#666' }}>No local foods match your search query.</p>
                                 )}
                             </div>
+
                             {selectedFood && (
                                 <div style={{ margin: '10px 0' }}>
                                     <label>
-                                        Number of Servings:
+                                        Number of Servings (1 = {selectedFood.serving_size}):
                                         <input
                                             type="number"
                                             value={servings}
-                                            onChange={(e) => setServings(Math.max(1, parseFloat(e.target.value) || 1))}
+                                            onChange={(e) => {
+                                                const newValue = e.target.value;
+                                                setServings(newValue === '' ? 0 : Math.max(1, parseFloat(newValue) || 1));
+                                            }}
+                                            onFocus={(e) => {
+                                                if (servings === 1) {
+                                                    e.target.value = '';
+                                                    setServings(0); // Clear the default "1" on focus
+                                                }
+                                            }}
+                                            onBlur={() => {
+                                                if (servings === 0) {
+                                                    setServings(1); // Reset to 1 if the user leaves it empty
+                                                }
+                                            }}
                                             min="1"
                                             step="0.1"
                                             style={{ marginLeft: '10px', padding: '5px', width: '100px' }}
@@ -908,6 +1002,7 @@ const Dashboard: React.FC = () => {
                                         setSearchResults([]);
                                         setSelectedFood(null);
                                         setServings(1);
+                                        setEdamamError(null);
                                     }}
                                     style={{ backgroundColor: '#bdbdbd', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px' }}
                                 >

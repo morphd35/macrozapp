@@ -34,6 +34,7 @@ export interface FoodItem {
     custom?: boolean;
     source?: 'local' | 'edamam'; // Add source if used
     measures?: Measure[];
+    displayLabel?: string;
 }
 
 export interface Food {

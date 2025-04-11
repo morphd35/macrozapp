@@ -76,32 +76,50 @@ router.post('/foods', async (req, res) => {
         const existingFood = await db('foods')
             .where({ user_id: parsedUserId, name })
             .first();
+
+        let newFood;
+
         if (existingFood) {
-            const macros = await db('food_macros').where('food_id', existingFood.id);
-            return res.status(200).json({ ...existingFood, macros, custom: true });
+            // Update the existing food's serving_size and category
+            [newFood] = await db('foods')
+                .where({ id: existingFood.id })
+                .update({
+                    serving_size,
+                    category,
+                })
+                .returning(['id', 'user_id', 'name', 'serving_size', 'category']);
+
+            // Delete existing macros and insert new ones
+            await db('food_macros').where('food_id', existingFood.id).del();
+
+            const macroEntries = macros.map(macro => ({
+                food_id: existingFood.id,
+                macro_name: macro.macro_name,
+                value: parseFloat(macro.value) || 0,
+                unit: macro.unit,
+            }));
+
+            await db('food_macros').insert(macroEntries);
+        } else {
+            // Insert the food with user_id
+            [newFood] = await db('foods')
+                .insert({
+                    user_id: parsedUserId,
+                    name,
+                    serving_size,
+                    category,
+                })
+                .returning(['id', 'user_id', 'name', 'serving_size', 'category']);
+
+            const macroEntries = macros.map(macro => ({
+                food_id: newFood.id,
+                macro_name: macro.macro_name,
+                value: parseFloat(macro.value) || 0,
+                unit: macro.unit,
+            }));
+
+            await db('food_macros').insert(macroEntries);
         }
-        // Insert the food with user_id
-        const [newFood] = await db('foods')
-            .insert({
-                user_id: parsedUserId,
-                name,
-                serving_size,
-                category,
-            })
-            .returning(['id', 'user_id', 'name', 'serving_size', 'category']);
-
-        // console.log('Inserted food for user_id:', parsedUserId, newFood);
-
-        // Insert all macros into food_macros
-        const macroEntries = macros.map(macro => ({
-            food_id: newFood.id,
-            macro_name: macro.macro_name,
-            value: parseFloat(macro.value),
-            unit: macro.unit,
-        }));
-
-        await db('food_macros').insert(macroEntries);
-
         // console.log('Inserted food macros for food_id:', newFood.id, macroEntries);
 
         const insertedMacros = await db('food_macros').where('food_id', newFood.id);
@@ -114,6 +132,7 @@ router.post('/foods', async (req, res) => {
 
 // Get all foods with their macros for a specific user
 router.get('/foods', async (req, res) => {
+
     try {
         const db = req.app.get('db');
         const userId = parseInt(req.query.user_id);

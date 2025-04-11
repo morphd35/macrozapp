@@ -53,7 +53,7 @@ const NavBar: React.FC = () => {
             </div>
             <div className="nav-header">
                 <div className="hamburger-icon" onClick={toggleMenu}>
-                    <span></span>.
+                    <span></span>
 
                     <span></span>
                     <span></span>

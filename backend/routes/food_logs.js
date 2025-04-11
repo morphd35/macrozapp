@@ -95,7 +95,7 @@ router.post('/foods', async (req, res) => {
         // Insert all macros into food_macros
         const macroEntries = macros.map(macro => ({
             food_id: newFood.id,
-            macro_name: macro.macro_name.toLowerCase(),
+            macro_name: macro.macro_name,
             value: parseFloat(macro.value),
             unit: macro.unit,
         }));

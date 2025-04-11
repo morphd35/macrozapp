@@ -482,7 +482,14 @@ const Dashboard: React.FC = () => {
             new Map(results.map(item => [`${item.foodId}-${item.label}`, item])).values()
         );
 
-        if (uniqueResults.length === 0) {
+        const filteredResults = uniqueResults.filter(item => {
+            const hasNutrients = Object.values(item.nutrients).some(value => value !== undefined && value > 0);
+            const defaultMeasure = item.measures?.find(measure => measure.label === 'Serving') || item.measures?.[0];
+            const baseWeightGrams = defaultMeasure ? defaultMeasure.weight : 100;
+            return hasNutrients && baseWeightGrams > 0;
+        });
+
+        if (filteredResults.length === 0) {
             if (!query.trim()) {
                 setEdamamError('Please enter a food to search.');
             } else if (query.trim().length < 3) {
@@ -494,8 +501,9 @@ const Dashboard: React.FC = () => {
             setEdamamError(null);
         }
 
-        const convertedResults = uniqueResults.map((item: FoodItem) => {
-            const baseWeightGrams = item.weight || parseFloat(item.serving_size || '100') || 100;
+        const convertedResults = filteredResults.map((item: FoodItem) => {
+            const defaultMeasure = item.measures?.find(measure => measure.label === 'Serving') || item.measures?.[0];
+            const baseWeightGrams = defaultMeasure ? defaultMeasure.weight : 100;
             const baseOunces = baseWeightGrams * 0.035274;
             const { unit, amount } = parseQuery(query);
 
@@ -506,19 +514,19 @@ const Dashboard: React.FC = () => {
                 targetUnit = 'oz';
                 targetGrams = amount / 0.035274;
                 scaleFactor = targetGrams / baseWeightGrams;
-                displayLabel = `${item.label} - ${amount} oz`;
+                displayLabel = `${item.label} (${amount} oz)`;
             } else if (unit === 'cup' && amount) {
                 targetAmount = amount;
                 targetUnit = 'cup';
                 targetGrams = amount * 240;
                 scaleFactor = targetGrams / baseWeightGrams;
-                displayLabel = `${item.label} - ${amount} cup (${(targetGrams * 0.035274).toFixed(1)} oz)`;
+                displayLabel = `${item.label} (${amount} cup, ${(targetGrams * 0.035274).toFixed(1)} oz)`;
             } else {
-                targetAmount = 4;
-                targetUnit = 'oz';
-                targetGrams = 4 / 0.035274;
-                scaleFactor = targetGrams / baseWeightGrams;
-                displayLabel = `${item.label} - 4 oz`;
+                targetAmount = 1;
+                targetUnit = 'serving';
+                targetGrams = baseWeightGrams;
+                scaleFactor = 1;
+                displayLabel = `${item.label} (1 serving, ${(baseWeightGrams * 0.035274).toFixed(1)} oz)`;
             }
 
             const scaledNutrients = {
@@ -535,12 +543,25 @@ const Dashboard: React.FC = () => {
                 caffeine: item.nutrients.caffeine ? item.nutrients.caffeine * scaleFactor : undefined,
             };
 
+            // Add preparation state to the label (e.g., "Cooked" or "Uncooked")
+            let preparationState = '';
+            if (item.category?.toLowerCase().includes('cooked') || query.toLowerCase().includes('cooked')) {
+                preparationState = 'Cooked';
+            } else if (item.category?.toLowerCase().includes('raw') || item.category?.toLowerCase().includes('uncooked')) {
+                preparationState = 'Uncooked';
+            } else if (scaledNutrients.calories > 300 && targetGrams <= 113.398) { // Heuristic: High calories for small weight suggests uncooked
+                preparationState = 'Uncooked';
+            } else {
+                preparationState = 'Cooked'; // Default to cooked for most foods
+            }
+
             return {
                 ...item,
-                label: displayLabel,
+                label: preparationState ? `${item.label} (${preparationState})` : item.label,
                 serving_size: `${targetAmount} ${targetUnit}`,
                 weight: targetGrams,
                 nutrients: scaledNutrients,
+                displayLabel: preparationState ? `${displayLabel} (${preparationState})` : displayLabel,
             };
         });
 
@@ -605,7 +626,7 @@ const Dashboard: React.FC = () => {
 
     const handleFoodSelect = async (data: FoodItem) => {
         console.log('handleFoodSelect called with data:', data);
-        const { foodId, label, category, custom, source, serving_size } = data;
+        const { foodId, label, category, custom, source, serving_size, measures } = data;
         if (!userId) {
             console.error('No userId available for selecting food');
             setError('User not authenticated. Please log in again.');
@@ -620,11 +641,9 @@ const Dashboard: React.FC = () => {
                 console.log('Food already exists in user\'s foods:', existingFood);
                 selected = existingFood;
             } else {
-                // Check if the food is local (e.g., foodId is numeric for local foods, or add a source field)
-                const isLocalFood = source === 'local'; // Edamam foodIds start with "food_"
+                const isLocalFood = source === 'local';
 
                 if (isLocalFood) {
-                    // Local food: Fetch macros from the database if needed
                     const response = await axiosInstance.get(`/api/food_logs/foods`, {
                         params: { user_id: userId },
                     });
@@ -639,7 +658,7 @@ const Dashboard: React.FC = () => {
                         name: localFood.name,
                         serving_size: localFood.serving_size,
                         category: localFood.category,
-                        macros: localFood.macros || [], // Use existing macros
+                        macros: localFood.macros || [],
                         custom: true,
                         foodId,
                     };
@@ -649,14 +668,23 @@ const Dashboard: React.FC = () => {
                     let targetQuantity = 1;
                     let targetMeasure = 'serving';
 
+                    // Find the default serving size from measures
+                    const defaultMeasure = measures?.find(measure => measure.label === 'Serving') || measures?.[0];
+                    const defaultWeightGrams = defaultMeasure ? defaultMeasure.weight : 100;
+
                     if (unit === 'oz' && amount) {
                         targetQuantity = amount;
                         targetMeasure = 'ounce';
                     } else if (unit === 'cup' && amount) {
                         targetQuantity = amount;
                         targetMeasure = 'cup';
+                    } else {
+                        // Use the default serving size from Edamam
+                        targetQuantity = 1;
+                        targetMeasure = 'serving';
                     }
-                    // Edamam food: Fetch detailed nutrients
+
+                    // Fetch detailed nutrients with the correct quantity and measure
                     const nutrientsResponse = await axiosInstance.post<{
                         foodId: string;
                         name: string;
@@ -677,7 +705,7 @@ const Dashboard: React.FC = () => {
                         id: -1,
                         user_id: userId,
                         name: `${label} (Edamam)`,
-                        serving_size: serving_size || '1 serving', // Use the scaled serving_size from handleSearchResults
+                        serving_size: serving_size || '1 serving',
                         category: fetchedCategory || category || 'Generic',
                         macros: macros.map((macro: FoodMacro) => ({
                             macro_name: macro.macro_name.toLowerCase().replace(/\s+/g, '_'),
@@ -895,7 +923,7 @@ const Dashboard: React.FC = () => {
                                                     onClick={() => handleFoodSelect(food)}
                                                 >
                                                     <div>
-                                                        <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
+                                                        <strong>{food.displayLabel || food.label}</strong> ({food.serving_size || 'Unknown serving size'})
                                                         <div style={{ marginTop: '5px' }}>
                                                             <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
                                                             <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>

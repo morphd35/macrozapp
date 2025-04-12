@@ -1185,7 +1185,7 @@ const Dashboard: React.FC = () => {
                     </>
                 )}
 
-                {/* Food Details Modal */}
+                {/* Food Details Modal with info*/}
                 {showFoodDetailsModal && selectedFoodDetails && (
                     <>
                         <div className="modal-backdrop" onClick={() => {

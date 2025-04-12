@@ -633,12 +633,6 @@ const Dashboard: React.FC = () => {
 
             console.log('Food details (all nutrients) response:', responseAll.data);
 
-            if (!responseAll.data.totalNutrients) {
-                console.error('No totalNutrients in response');
-                setError('Failed to load nutrients: No nutrient data available.');
-                return;
-            }
-
             // Fetch user goal-based macros for logging
             const responseGoals = await axiosInstance.post<{
                 foodId: string;
@@ -670,7 +664,19 @@ const Dashboard: React.FC = () => {
                 foodId: food.foodId,
             };
 
-            setFoodDetailsNutrients(responseAll.data.totalNutrients);
+            // Use totalNutrients if available and not empty; otherwise, fall back to goal-based macros
+            const nutrientsToDisplay = responseAll.data.totalNutrients && Object.keys(responseAll.data.totalNutrients).length > 0
+                ? responseAll.data.totalNutrients
+                : responseGoals.data.macros.reduce((acc: { [key: string]: { label: string; quantity: number; unit: string } }, macro: FoodMacro) => {
+                    acc[macro.macro_name.toUpperCase()] = {
+                        label: macro.macro_name,
+                        quantity: macro.value,
+                        unit: macro.unit,
+                    };
+                    return acc;
+                }, {});
+
+            setFoodDetailsNutrients(nutrientsToDisplay);
             setSelectedFoodDetails(foodWithMacros);
             setFoodDetailsWeight(defaultWeightGrams);
             setShowFoodDetailsModal(true);
@@ -681,6 +687,7 @@ const Dashboard: React.FC = () => {
             setShowFoodDetailsModal(false);
             setSelectedFoodDetails(null);
             setFoodDetailsNutrients(null);
+            setFoodDetailsWeight(100);
         }
     };
     // Function to log food from the details modal

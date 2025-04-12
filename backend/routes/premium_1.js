@@ -202,8 +202,8 @@ router.get('/food-lookup', checkAuth, checkPaidUser, async (req, res) => {
 
 router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
     console.log('POST /food-nutrients endpoint reached');
-    const { foodId, quantity, measure, userId } = req.body;
-    console.log('Request body:', { foodId, quantity, measure, userId });
+    const { foodId, quantity, measure, userId, fetchAll } = req.body;
+    console.log('Request body:', { foodId, quantity, measure, userId, fetchAll });
 
     if (!foodId || !quantity || !measure || !userId) {
         console.log('Missing required parameters');
@@ -277,7 +277,7 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
             return res.status(400).json({ message: 'Invalid response from Edamam API.' });
         }
 
-        const totalNutrients = nutrientsResponse.data.totalNutrients;
+        const totalNutrients = nutrientsResponse.data.totalNutrients || {};
         const parsedFood = nutrientsResponse.data.ingredients[0].parsed[0];
         const foodName = parsedFood.food;
         console.log('Parsed food name:', foodName);
@@ -287,32 +287,37 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
         console.log('Total weight for quantity:', quantity, measure, '=', totalWeight, 'grams');
 
         // Filter nutrients based on user goals
-        const nutrients = {};
-        goals.forEach(goal => {
-            const normalizedMacroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');
-            const nutrientKey = nutrientMap[normalizedMacroKey];
-            if (nutrientKey && totalNutrients[nutrientKey]) {
-                nutrients[goal.macro_name] = {
-                    value: totalNutrients[nutrientKey].quantity,
-                    unit: totalNutrients[nutrientKey].unit,
-                };
-            } else {
-                nutrients[goal.macro_name] = { value: 0, unit: goal.unit };
-            }
-        });
-        console.log('Filtered nutrients:', nutrients);
-
+        let nutrients = {};
+        if (fetchAll) {
+            nutrients = totalNutrients;
+        } else {
+            goals.forEach(goal => {
+                const normalizedMacroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');
+                const nutrientKey = nutrientMap[normalizedMacroKey];
+                if (nutrientKey && totalNutrients[nutrientKey]) {
+                    nutrients[goal.macro_name] = {
+                        value: totalNutrients[nutrientKey].quantity,
+                        unit: totalNutrients[nutrientKey].unit,
+                    };
+                } else {
+                    nutrients[goal.macro_name] = { value: 0, unit: goal.unit };
+                }
+            });
+            console.log('Filtered nutrients:', nutrients);
+        }
         const responseData = {
             foodId,
             name: `${foodName} (Edamam)`,
             serving_size: `${quantity} ${measure}`,
             category: parsedFood.category || 'Generic',
-            macros: Object.entries(nutrients).map(([macro_name, { value, unit }]) => ({
+            macros: fetchAll ? [] : Object.entries(nutrients).map(([macro_name, { value, unit }]) => ({
+
                 macro_name: macro_name.toLowerCase().replace(/\s+/g, '_'),
                 value,
                 unit,
             })),
             totalWeight,
+            totalNutrients: fetchAll ? nutrients : undefined,
         };
         console.log('Response data:', responseData);
 

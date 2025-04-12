@@ -5,6 +5,7 @@ import RestaurantIcon from '@mui/icons-material/Restaurant';
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import FitnessCenterIcon from '@mui/icons-material/FitnessCenter';
 import SearchIcon from '@mui/icons-material/Search';
+import InfoIcon from '@mui/icons-material/Info';
 import { jwtDecode } from 'jwt-decode';
 import axiosInstance from '../utils/axiosConfig';
 import { Link, useLocation, useNavigate } from 'react-router-dom'; // Add Link for the upgrade prompt
@@ -107,9 +108,18 @@ const Dashboard: React.FC = () => {
     const [dashboardSearchQuery, setDashboardSearchQuery] = useState<string>(''); // New state for dashboard search
     const [hasFetchedInitialData, setHasFetchedInitialData] = useState(false);
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-
-    // Add a ref for the FoodLookup component
     const foodLookupRef = useRef<FoodLookupRef>(null);
+    // State for the Food Details Modal
+    const [showFoodDetailsModal, setShowFoodDetailsModal] = useState(false);
+    const [selectedFoodDetails, setSelectedFoodDetails] = useState<Food | FoodItem | null>(null);
+    const [foodDetailsNutrients, setFoodDetailsNutrients] = useState<any>(null);
+    const [foodDetailsServings, setFoodDetailsServings] = useState<number>(1);
+    const [foodDetailsWeight, setFoodDetailsWeight] = useState<number>(100);
+
+    // Custom type guard to narrow FoodItem
+    function isFoodItem(item: Food | FoodItem): item is FoodItem {
+        return 'label' in item;
+    }
 
     // Focus the input when the modal opens
     useEffect(() => {
@@ -578,6 +588,111 @@ const Dashboard: React.FC = () => {
         setSearchResults(convertedResults as FoodItem[]);
     }, []);
 
+    // Function to fetch all nutrients for a food item
+    const fetchFoodDetails = async (food: FoodItem) => {
+        try {
+            const { unit, amount } = parseQuery(food.label);
+            let targetQuantity = 1;
+            let targetMeasure = 'serving';
+
+            const defaultMeasure = food.measures?.find(measure => measure.label === 'Serving') || food.measures?.[0];
+            const defaultWeightGrams = defaultMeasure ? defaultMeasure.weight : 100;
+
+            if (unit === 'oz' && amount) {
+                targetQuantity = amount;
+                targetMeasure = 'ounce';
+            } else if (unit === 'cup' && amount) {
+                targetQuantity = amount;
+                targetMeasure = 'cup';
+            }
+
+            console.log('Fetching food details with payload:', {
+                foodId: food.foodId,
+                quantity: targetQuantity,
+                measure: targetMeasure,
+                userId,
+                fetchAll: true,
+            });
+
+            // Fetch all nutrients for display
+            const responseAll = await axiosInstance.post<{
+                foodId: string;
+                name: string;
+                serving_size: string;
+                category: string;
+                macros: any[];
+                totalWeight: number;
+                totalNutrients: any;
+            }>('/api/premium_1/food-nutrients', {
+                foodId: food.foodId,
+                quantity: targetQuantity,
+                measure: targetMeasure,
+                userId,
+                fetchAll: true,
+            });
+
+            console.log('Food details (all nutrients) response:', responseAll.data);
+
+            if (!responseAll.data.totalNutrients) {
+                console.error('No totalNutrients in response');
+                setError('Failed to load nutrients: No nutrient data available.');
+                return;
+            }
+
+            // Fetch user goal-based macros for logging
+            const responseGoals = await axiosInstance.post<{
+                foodId: string;
+                name: string;
+                serving_size: string;
+                category: string;
+                macros: FoodMacro[];
+                totalWeight: number;
+                totalNutrients?: any;
+            }>('/api/premium_1/food-nutrients', {
+                foodId: food.foodId,
+                quantity: targetQuantity,
+                measure: targetMeasure,
+                userId,
+                fetchAll: false,
+            });
+
+            console.log('Food details (goal-based macros) response:', responseGoals.data);
+
+            // Create a Food object with the goal-based macros
+            const foodWithMacros: Food = {
+                id: -1,
+                user_id: userId!,
+                name: responseGoals.data.name,
+                serving_size: responseGoals.data.serving_size,
+                category: responseGoals.data.category,
+                macros: responseGoals.data.macros,
+                custom: false,
+                foodId: food.foodId,
+            };
+
+            setFoodDetailsNutrients(responseAll.data.totalNutrients);
+            setSelectedFoodDetails(foodWithMacros);
+            setFoodDetailsWeight(defaultWeightGrams);
+            setShowFoodDetailsModal(true);
+        } catch (err) {
+            const error = err as AxiosError<ErrorResponse>;
+            console.error('Error fetching food details:', error.response?.data || error.message);
+            setError(error.response?.data?.error || 'Failed to fetch food details.');
+            setShowFoodDetailsModal(false);
+            setSelectedFoodDetails(null);
+            setFoodDetailsNutrients(null);
+        }
+    };
+    // Function to log food from the details modal
+    const logFoodFromDetails = async () => {
+        if (!selectedFoodDetails) return;
+        await logFood(selectedFoodDetails, foodDetailsServings);
+        setShowFoodDetailsModal(false);
+        setSelectedFoodDetails(null);
+        setFoodDetailsNutrients(null);
+        setFoodDetailsServings(1);
+    };
+
     // useEffect(() => {
     //     console.log('foodQuery changed:', foodQuery);
     // }, [foodQuery]);
@@ -908,9 +1023,7 @@ const Dashboard: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Container for both Edamam and Local Foods with balanced space */}
                             <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {/* Edamam Search Results */}
                                 {stableUser?.isPaid && (
                                     <div style={{ flex: '0 0 50%', maxHeight: '40vh', overflowY: 'auto', margin: '0' }}>
                                         <h4 style={{ margin: '0 0 10px 0' }}>
@@ -933,17 +1046,23 @@ const Dashboard: React.FC = () => {
                                                             backgroundColor: selectedFood?.foodId === food.foodId ? '#e0f7fa' : 'transparent',
                                                             transition: 'background-color 0.2s',
                                                         }}
-                                                        onClick={() => handleFoodSelect(food)}
                                                     >
-                                                        <div>
+                                                        <div
+                                                            style={{ flex: 1 }}
+                                                            onClick={() => handleFoodSelect(food)}
+                                                        >
                                                             <strong>{food.displayLabel || food.label}</strong> ({food.serving_size || 'Unknown serving size'})
                                                             <div style={{ marginTop: '5px' }}>
                                                                 <span style={{ color: 'purple', marginRight: '10px' }}>CLs {food.nutrients.calories.toFixed(1)}</span>
-                                                                <span style={{ color: 'red', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
+                                                                <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
                                                                 <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
                                                                 <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
                                                             </div>
                                                         </div>
+                                                        <InfoIcon
+                                                            style={{ color: '#4a5568', cursor: 'pointer', marginLeft: '10px' }}
+                                                            onClick={() => fetchFoodDetails(food)}
+                                                        />
                                                     </li>
                                                 ))}
                                             </ul>
@@ -955,7 +1074,6 @@ const Dashboard: React.FC = () => {
                                     </div>
                                 )}
 
-                                {/* Local Foods */}
                                 <div style={{ flex: '0 0 50%', maxHeight: '40vh', overflowY: 'auto', margin: '0' }}>
                                     <h4 style={{ margin: '0 0 10px 0' }}>
                                         {foodQuery.trim() ? `Local Foods Matching "${foodQuery}"` : 'Your Local Foods'}
@@ -981,7 +1099,7 @@ const Dashboard: React.FC = () => {
                                                         <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
                                                         <div style={{ marginTop: '5px' }}>
                                                             <span style={{ color: 'purple', marginRight: '10px' }}>CLs {food.nutrients.calories.toFixed(1)}</span>
-                                                            <span style={{ color: 'red', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
+                                                            <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
                                                             <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
                                                             <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
                                                         </div>
@@ -1061,6 +1179,93 @@ const Dashboard: React.FC = () => {
                                     style={{ backgroundColor: '#bdbdbd', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px' }}
                                 >
                                     Cancel
+                                </button>
+                            </div>
+                        </div>
+                    </>
+                )}
+
+                {/* Food Details Modal */}
+                {showFoodDetailsModal && selectedFoodDetails && (
+                    <>
+                        <div className="modal-backdrop" onClick={() => {
+                            setShowFoodDetailsModal(false);
+                            setSelectedFoodDetails(null);
+                            setFoodDetailsNutrients(null);
+                            setFoodDetailsServings(1);
+                            setFoodDetailsWeight(100);
+                        }} />
+                        <div className="modal" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '10px' }}>
+                            <h3 style={{ marginBottom: '10px' }}>
+                                Nutrition Facts: {isFoodItem(selectedFoodDetails) ? (selectedFoodDetails.displayLabel || selectedFoodDetails.label) : selectedFoodDetails.name}
+                            </h3>
+                            <div style={{ flex: '1 1 auto', overflowY: 'auto', marginBottom: '10px' }}>
+                                <p>
+                                    <strong>Serving Size:</strong> {isFoodItem(selectedFoodDetails) ? (selectedFoodDetails.serving_size || 'Unknown serving size') : selectedFoodDetails.serving_size} ({(isFoodItem(selectedFoodDetails) ? (selectedFoodDetails.weight ?? foodDetailsWeight) : foodDetailsWeight).toFixed(1)} g)
+                                </p>
+                                {foodDetailsNutrients ? (
+                                    <div>
+                                        {Object.entries(foodDetailsNutrients).map(([key, nutrient]: [string, any]) => (
+                                            <p key={key}>
+                                                <strong>{nutrient.label}:</strong> {nutrient.quantity.toFixed(2)} {nutrient.unit}
+                                            </p>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p>Loading nutrients...</p>
+                                )}
+                            </div>
+                            <div style={{ margin: '10px 0' }}>
+                                <label>
+                                    Number of Servings (1 = {isFoodItem(selectedFoodDetails) ? (selectedFoodDetails.serving_size || 'Unknown serving size') : selectedFoodDetails.serving_size}):
+                                    <input
+                                        type="number"
+                                        value={foodDetailsServings}
+                                        onChange={(e) => {
+                                            const newValue = e.target.value;
+                                            setFoodDetailsServings(newValue === '' ? 0 : Math.max(0.1, parseFloat(newValue) || 0.1));
+                                        }}
+                                        onFocus={(e) => {
+                                            e.target.value = '';
+                                            setFoodDetailsServings(0);
+                                        }}
+                                        onBlur={() => {
+                                            if (foodDetailsServings === 0) {
+                                                setFoodDetailsServings(0.1);
+                                            }
+                                        }}
+                                        step="0.1"
+                                        style={{ marginLeft: '10px', padding: '5px', width: '100px' }}
+                                    />
+                                </label>
+                            </div>
+                            <div style={{ flex: '0 0 auto', display: 'flex', justifyContent: 'space-between', paddingTop: '10px' }}>
+                                <button
+                                    className="button-with-icon"
+                                    onClick={logFoodFromDetails}
+                                    style={{
+                                        backgroundColor: '#26a69a',
+                                        color: 'white',
+                                        border: 'none',
+                                        padding: '10px 20px',
+                                        borderRadius: '4px',
+                                    }}
+                                >
+                                    <RestaurantIcon className="icon" />
+                                    Log Food
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setShowFoodDetailsModal(false);
+                                        setSelectedFoodDetails(null);
+                                        setFoodDetailsNutrients(null);
+                                        setFoodDetailsServings(1);
+                                        setFoodDetailsWeight(100);
+                                    }}
+                                    style={{ backgroundColor: '#bdbdbd', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '4px' }}
+                                >
+                                    Close
                                 </button>
                             </div>
                         </div>

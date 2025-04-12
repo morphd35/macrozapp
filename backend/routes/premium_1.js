@@ -202,8 +202,9 @@ router.get('/food-lookup', checkAuth, checkPaidUser, async (req, res) => {
 
 router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
     console.log('POST /food-nutrients endpoint reached');
+    console.log('Raw request body:', req.body); // Log the raw request body
     const { foodId, quantity, measure, userId, fetchAll } = req.body;
-    console.log('Request body:', { foodId, quantity, measure, userId, fetchAll });
+    console.log('Parsed request body:', { foodId, quantity, measure, userId, fetchAll });
 
     if (!foodId || !quantity || !measure || !userId) {
         console.log('Missing required parameters');
@@ -256,19 +257,26 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
             app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY,
         });
 
-        const nutrientsResponse = await retryRequest(async () => {
-            return await axios.post(
-                'https://api.edamam.com/api/food-database/v2/nutrients',
-                payload,
-                {
-                    params: {
-                        app_id: process.env.EDAMAM_FOOD_DATABASE_APP_ID,
-                        app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY,
-                    },
-                    timeout: 5000,
-                }
-            );
-        });
+        let nutrientsResponse;
+        try {
+            nutrientsResponse = await retryRequest(async () => {
+                return await axios.post(
+                    'https://api.edamam.com/api/food-database/v2/nutrients',
+                    payload,
+                    {
+                        params: {
+                            app_id: process.env.EDAMAM_FOOD_DATABASE_APP_ID,
+                            app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY,
+                        },
+                        timeout: 5000,
+                    }
+                );
+            });
+        } catch (apiError) {
+            console.error('Edamam API request failed:', apiError.message);
+            console.error('Full Edamam API error details:', apiError.response ? apiError.response.data : apiError);
+            throw apiError;
+        }
 
         console.log('Edamam /nutrients API response:', nutrientsResponse.data);
 
@@ -282,11 +290,9 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
         const foodName = parsedFood.food;
         console.log('Parsed food name:', foodName);
 
-        // Calculate the total weight of the requested serving
         const totalWeight = nutrientsResponse.data.totalWeight || 0;
         console.log('Total weight for quantity:', quantity, measure, '=', totalWeight, 'grams');
 
-        // Filter nutrients based on user goals
         let nutrients = {};
         if (fetchAll) {
             nutrients = totalNutrients;
@@ -305,13 +311,13 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
             });
             console.log('Filtered nutrients:', nutrients);
         }
+
         const responseData = {
             foodId,
             name: `${foodName} (Edamam)`,
             serving_size: `${quantity} ${measure}`,
             category: parsedFood.category || 'Generic',
             macros: fetchAll ? [] : Object.entries(nutrients).map(([macro_name, { value, unit }]) => ({
-
                 macro_name: macro_name.toLowerCase().replace(/\s+/g, '_'),
                 value,
                 unit,
@@ -325,6 +331,7 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
     } catch (error) {
         console.error('Error in /food-nutrients endpoint:', error.message);
         console.error('Error stack:', error.stack);
+        console.error('Full error details:', error.response ? error.response.data : error);
         res.status(500).json({ message: 'Error fetching food nutrients.', details: error.message });
     }
 });

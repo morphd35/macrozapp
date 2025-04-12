@@ -606,13 +606,14 @@ const Dashboard: React.FC = () => {
                 targetMeasure = 'cup';
             }
 
-            console.log('Fetching food details with payload:', {
+            const payload = {
                 foodId: food.foodId,
                 quantity: targetQuantity,
                 measure: targetMeasure,
                 userId,
-                fetchAll: true,
-            });
+            };
+
+            console.log('Fetching food details with payload:', payload, 'fetchAll=true');
 
             // Fetch all nutrients for display
             const responseAll = await axiosInstance.post<{
@@ -623,12 +624,10 @@ const Dashboard: React.FC = () => {
                 macros: any[];
                 totalWeight: number;
                 totalNutrients: any;
-            }>('/api/premium_1/food-nutrients', {
-                foodId: food.foodId,
-                quantity: targetQuantity,
-                measure: targetMeasure,
-                userId,
-                fetchAll: true,
+            }>(`/api/premium_1/food-nutrients?fetchAll=true`, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             });
 
             console.log('Food details (all nutrients) response:', responseAll.data);
@@ -642,12 +641,15 @@ const Dashboard: React.FC = () => {
                 macros: FoodMacro[];
                 totalWeight: number;
                 totalNutrients?: any;
-            }>('/api/premium_1/food-nutrients', {
+            }>(`/api/premium_1/food-nutrients?fetchAll=false`, {
                 foodId: food.foodId,
                 quantity: targetQuantity,
                 measure: targetMeasure,
                 userId,
-                fetchAll: false,
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
             });
 
             console.log('Food details (goal-based macros) response:', responseGoals.data);

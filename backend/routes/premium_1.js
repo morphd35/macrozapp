@@ -202,9 +202,14 @@ router.get('/food-lookup', checkAuth, checkPaidUser, async (req, res) => {
 
 router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
     console.log('POST /food-nutrients endpoint reached');
-    console.log('Raw request body:', req.body); // Log the raw request body
-    const { foodId, quantity, measure, userId, fetchAll } = req.body;
-    console.log('Parsed request body:', { foodId, quantity, measure, userId, fetchAll });
+    console.log('Request headers:', req.headers);
+    console.log('Raw request body (stringified):', JSON.stringify(req.body));
+    console.log('Raw request body:', req.body);
+    console.log('Query parameters:', req.query); // Log query parameters
+    const { foodId, quantity, measure, userId } = req.body;
+    const fetchAll = req.query.fetchAll === 'true'; // Parse fetchAll from query parameter
+    console.log('Parsed request body:', { foodId, quantity, measure, userId });
+    console.log('fetchAll value (from query):', fetchAll);
 
     if (!foodId || !quantity || !measure || !userId) {
         console.log('Missing required parameters');

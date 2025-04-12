@@ -1,4 +1,4 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useRef, useImperativeHandle, forwardRef } from 'react';
 import axiosInstance from './utils/axiosConfig';
 import { AxiosError } from 'axios';
 import SearchIcon from '@mui/icons-material/Search';
@@ -22,6 +22,7 @@ interface FoodItem {
     serving_size?: string;
     source?: 'local' | 'edamam';
     measures?: Measure[];
+    displayLabel?: string;
 }
 
 interface FoodLookupProps {
@@ -33,14 +34,22 @@ interface FoodLookupProps {
     setError: (error: string | null) => void;
 }
 
-const FoodLookup: React.FC<FoodLookupProps> = ({
-    onSearchResults,
-    userFoods,
-    query,
-    setQuery,
-    error,
-    setError,
-}) => {
+export interface FoodLookupRef {
+    focusInput: () => void;
+}
+
+const FoodLookup = forwardRef<FoodLookupRef, FoodLookupProps>(({ onSearchResults, userFoods, query, setQuery, error, setError }, ref) => {
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Expose the focusInput method to the parent component
+    useImperativeHandle(ref, () => ({
+        focusInput: () => {
+            if (inputRef.current) {
+                inputRef.current.focus();
+            }
+        },
+    }));
+
     const fetchEdamamResults = useCallback(async (searchQuery: string) => {
         if (!searchQuery.trim()) {
             onSearchResults([], searchQuery);
@@ -97,12 +106,12 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
     }, [onSearchResults, setError]);
 
     const handleSearch = () => {
-        fetchEdamamResults(query); // Trigger search on icon click
+        fetchEdamamResults(query);
     };
 
     const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
-            fetchEdamamResults(query); // Trigger search on Enter
+            fetchEdamamResults(query);
         }
     };
 
@@ -110,6 +119,7 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
         <div className="food-lookup">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input
+                    ref={inputRef}
                     type="text"
                     placeholder="Search for a food (e.g., avocado)..."
                     value={query}
@@ -123,6 +133,6 @@ const FoodLookup: React.FC<FoodLookupProps> = ({
             </div>
         </div>
     );
-};
+});
 
 export default FoodLookup;

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useContext, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useContext, useMemo, useRef } from 'react';
 import { AxiosError } from 'axios';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import RestaurantIcon from '@mui/icons-material/Restaurant';
@@ -9,7 +9,7 @@ import { jwtDecode } from 'jwt-decode';
 import axiosInstance from '../utils/axiosConfig';
 import { Link, useLocation, useNavigate } from 'react-router-dom'; // Add Link for the upgrade prompt
 import { AuthContext } from '../context/AuthContext'; // Add AuthContext
-import FoodLookup from '../FoodLookup'; // Import the FoodLookup component
+import FoodLookup, { FoodLookupRef } from '../FoodLookup';
 import { FoodItem } from '../types'; // Import the shared type
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -107,6 +107,16 @@ const Dashboard: React.FC = () => {
     const [dashboardSearchQuery, setDashboardSearchQuery] = useState<string>(''); // New state for dashboard search
     const [hasFetchedInitialData, setHasFetchedInitialData] = useState(false);
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+    // Add a ref for the FoodLookup component
+    const foodLookupRef = useRef<FoodLookupRef>(null);
+
+    // Focus the input when the modal opens
+    useEffect(() => {
+        if (showLogModal && foodLookupRef.current) {
+            foodLookupRef.current.focusInput();
+        }
+    }, [showLogModal]);
 
     // Determine user status
     const userStatus = useMemo(() => {
@@ -868,11 +878,12 @@ const Dashboard: React.FC = () => {
                 {showLogModal && (
                     <>
                         <div className="modal-backdrop" onClick={() => setShowLogModal(false)} />
-                        <div className="modal" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column' }}>
+                        <div className="modal" style={{ maxHeight: '80vh', display: 'flex', flexDirection: 'column', padding: '10px' }}>
                             <h3 style={{ marginBottom: '10px' }}>Log Food</h3>
-                            <div style={{ flex: '0 0 auto' }}>
+                            <div style={{ flex: '0 0 auto', marginBottom: '10px' }}>
                                 {stableUser?.isPaid ? (
                                     <FoodLookup
+                                        ref={foodLookupRef}
                                         onSearchResults={handleSearchResults}
                                         userFoods={memoizedUserFoods}
                                         query={foodQuery}
@@ -897,17 +908,61 @@ const Dashboard: React.FC = () => {
                                 )}
                             </div>
 
-                            {/* Edamam Search Results */}
-                            {stableUser?.isPaid && (
-                                <div style={{ flex: '1 1 auto', overflowY: 'auto', margin: '10px 0' }}>
+                            {/* Container for both Edamam and Local Foods with balanced space */}
+                            <div style={{ flex: '1 1 auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                {/* Edamam Search Results */}
+                                {stableUser?.isPaid && (
+                                    <div style={{ flex: '0 0 50%', maxHeight: '40vh', overflowY: 'auto', margin: '0' }}>
+                                        <h4 style={{ margin: '0 0 10px 0' }}>
+                                            {foodQuery.trim() ? `Search Results for "${foodQuery}"` : 'Search Results'}
+                                        </h4>
+                                        {edamamError ? (
+                                            <p style={{ color: '#666' }}>{edamamError}</p>
+                                        ) : searchResults.length > 0 ? (
+                                            <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                                                {searchResults.map((food) => (
+                                                    <li
+                                                        key={food.foodId}
+                                                        style={{
+                                                            padding: '12px',
+                                                            borderBottom: '1px solid #eee',
+                                                            display: 'flex',
+                                                            justifyContent: 'space-between',
+                                                            alignItems: 'center',
+                                                            cursor: 'pointer',
+                                                            backgroundColor: selectedFood?.foodId === food.foodId ? '#e0f7fa' : 'transparent',
+                                                            transition: 'background-color 0.2s',
+                                                        }}
+                                                        onClick={() => handleFoodSelect(food)}
+                                                    >
+                                                        <div>
+                                                            <strong>{food.displayLabel || food.label}</strong> ({food.serving_size || 'Unknown serving size'})
+                                                            <div style={{ marginTop: '5px' }}>
+                                                                <span style={{ color: 'purple', marginRight: '10px' }}>CLs {food.nutrients.calories.toFixed(1)}</span>
+                                                                <span style={{ color: 'red', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
+                                                                <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
+                                                                <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        ) : (
+                                            <p style={{ color: '#666' }}>
+                                                {foodQuery.trim() ? 'Press Enter or click the search icon to search Edamam' : 'Enter a food to search'}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* Local Foods */}
+                                <div style={{ flex: '0 0 50%', maxHeight: '40vh', overflowY: 'auto', margin: '0' }}>
                                     <h4 style={{ margin: '0 0 10px 0' }}>
-                                        {foodQuery.trim() ? `Search Results for "${foodQuery}"` : 'Search Results'}
+                                        {foodQuery.trim() ? `Local Foods Matching "${foodQuery}"` : 'Your Local Foods'}
                                     </h4>
-                                    {edamamError ? (
-                                        <p style={{ color: '#666' }}>{edamamError}</p>
-                                    ) : searchResults.length > 0 ? (
+                                    {filteredLocalFoods.length > 0 ? (
                                         <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                                            {searchResults.map((food) => (
+                                            {filteredLocalFoods.map((food) => (
                                                 <li
                                                     key={food.foodId}
                                                     style={{
@@ -923,9 +978,10 @@ const Dashboard: React.FC = () => {
                                                     onClick={() => handleFoodSelect(food)}
                                                 >
                                                     <div>
-                                                        <strong>{food.displayLabel || food.label}</strong> ({food.serving_size || 'Unknown serving size'})
+                                                        <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
                                                         <div style={{ marginTop: '5px' }}>
-                                                            <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
+                                                            <span style={{ color: 'purple', marginRight: '10px' }}>CLs {food.nutrients.calories.toFixed(1)}</span>
+                                                            <span style={{ color: 'red', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
                                                             <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
                                                             <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
                                                         </div>
@@ -934,49 +990,9 @@ const Dashboard: React.FC = () => {
                                             ))}
                                         </ul>
                                     ) : (
-                                        <p style={{ color: '#666' }}>
-                                            {foodQuery.trim() ? 'Press Enter or click the search icon to search Edamam' : 'Enter a food to search'}
-                                        </p>
+                                        <p style={{ color: '#666' }}>No local foods match your search query.</p>
                                     )}
                                 </div>
-                            )}
-
-                            {/* Local Foods */}
-                            <div style={{ flex: '1 1 auto', overflowY: 'auto', margin: '10px 0' }}>
-                                <h4 style={{ margin: '0 0 10px 0' }}>
-                                    {foodQuery.trim() ? `Local Foods Matching "${foodQuery}"` : 'Your Local Foods'}
-                                </h4>
-                                {filteredLocalFoods.length > 0 ? (
-                                    <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
-                                        {filteredLocalFoods.map((food) => (
-                                            <li
-                                                key={food.foodId}
-                                                style={{
-                                                    padding: '12px',
-                                                    borderBottom: '1px solid #eee',
-                                                    display: 'flex',
-                                                    justifyContent: 'space-between',
-                                                    alignItems: 'center',
-                                                    cursor: 'pointer',
-                                                    backgroundColor: selectedFood?.foodId === food.foodId ? '#e0f7fa' : 'transparent',
-                                                    transition: 'background-color 0.2s',
-                                                }}
-                                                onClick={() => handleFoodSelect(food)}
-                                            >
-                                                <div>
-                                                    <strong>{food.label}</strong> ({food.serving_size || 'Unknown serving size'})
-                                                    <div style={{ marginTop: '5px' }}>
-                                                        <span style={{ color: 'pink', marginRight: '10px' }}>P {food.nutrients.protein.toFixed(1)}</span>
-                                                        <span style={{ color: 'blue', marginRight: '10px' }}>C {food.nutrients.carbs.toFixed(1)}</span>
-                                                        <span style={{ color: 'green', marginRight: '10px' }}>F {food.nutrients.fats.toFixed(1)}</span>
-                                                    </div>
-                                                </div>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                ) : (
-                                    <p style={{ color: '#666' }}>No local foods match your search query.</p>
-                                )}
                             </div>
 
                             {selectedFood && (
@@ -991,17 +1007,14 @@ const Dashboard: React.FC = () => {
                                                 setServings(newValue === '' ? 0 : Math.max(0.1, parseFloat(newValue) || 0.1));
                                             }}
                                             onFocus={(e) => {
-                                                if (servings === 1) {
-                                                    e.target.value = '';
-                                                    setServings(0); // Clear the default "1" on focus
-                                                }
+                                                e.target.value = '';
+                                                setServings(0);
                                             }}
                                             onBlur={() => {
                                                 if (servings === 0) {
-                                                    setServings(1); // Reset to 1 if the user leaves it empty
+                                                    setServings(0.1);
                                                 }
                                             }}
-
                                             step="0.1"
                                             style={{ marginLeft: '10px', padding: '5px', width: '100px' }}
                                         />

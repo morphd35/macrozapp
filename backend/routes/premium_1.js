@@ -207,7 +207,7 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
     console.log('Raw request body:', req.body);
     console.log('Query parameters:', req.query); // Log query parameters
     const { foodId, quantity, measure, userId } = req.body;
-    const fetchAll = req.query.fetchAll === 'true'; // Parse fetchAll from query parameter
+    const fetchAll = req.query.fetchAll === 'true' || req.query.fetchAll === true || req.query.fetchAll === '1' || String(req.query.fetchAll).toLowerCase() === 'true';
     console.log('Parsed request body:', { foodId, quantity, measure, userId });
     console.log('fetchAll value (from query):', fetchAll);
 
@@ -258,8 +258,8 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
         };
         console.log('Edamam /nutrients payload:', payload);
         console.log('Edamam API credentials:', {
-            app_id: process.env.EDAMAM_FOOD_DATABASE_APP_ID,
-            app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY,
+            app_id: process.env.EDAMAM_FOOD_DATABASE_APP_ID ? 'Set' : 'Not Set',
+            app_key: process.env.EDAMAM_FOOD_DATABASE_APP_KEY ? 'Set' : 'Not Set',
         });
 
         let nutrientsResponse;
@@ -301,6 +301,7 @@ router.post('/food-nutrients', checkAuth, checkPaidUser, async (req, res) => {
         let nutrients = {};
         if (fetchAll) {
             nutrients = totalNutrients;
+            console.log('Returning full nutrients:', nutrients);
         } else {
             goals.forEach(goal => {
                 const normalizedMacroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');

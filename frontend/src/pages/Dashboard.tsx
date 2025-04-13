@@ -615,68 +615,93 @@ const Dashboard: React.FC = () => {
 
             console.log('Fetching food details with payload:', payload, 'fetchAll=true');
 
-            // Fetch all nutrients for display
-            const responseAll = await axiosInstance.post<{
-                foodId: string;
-                name: string;
-                serving_size: string;
-                category: string;
-                macros: any[];
-                totalWeight: number;
-                totalNutrients: any;
-            }>(`/api/premium_1/food-nutrients?fetchAll=true`, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+            // Initialize response variables with default values to satisfy TypeScript
+            let responseAll: { data: { foodId: string; name: string; serving_size: string; category: string; macros: any[]; totalWeight: number; totalNutrients?: any } } | null = null;
+            let responseGoals: { data: { foodId: string; name: string; serving_size: string; category: string; macros: FoodMacro[]; totalWeight: number; totalNutrients?: any } } | null = null;
 
-            console.log('Food details (all nutrients) response:', responseAll.data);
+            // Fetch all nutrients (fetchAll=true)
+            try {
+                responseAll = await axiosInstance.post<{
+                    foodId: string;
+                    name: string;
+                    serving_size: string;
+                    category: string;
+                    macros: any[];
+                    totalWeight: number;
+                    totalNutrients: any;
+                }>(`/api/premium_1/food-nutrients?fetchAll=true`, payload, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                console.log('Food details (all nutrients) response:', responseAll.data);
+            } catch (err) {
+                const error = err as AxiosError<ErrorResponse>;
+                console.error('Error fetching all nutrients (fetchAll=true):', error.response?.data || error.message);
+                // Continue to the next request even if this fails
+            }
 
-            // Fetch user goal-based macros for logging
-            const responseGoals = await axiosInstance.post<{
-                foodId: string;
-                name: string;
-                serving_size: string;
-                category: string;
-                macros: FoodMacro[];
-                totalWeight: number;
-                totalNutrients?: any;
-            }>(`/api/premium_1/food-nutrients?fetchAll=false`, {
-                foodId: food.foodId,
-                quantity: targetQuantity,
-                measure: targetMeasure,
-                userId,
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
+            // Fetch goal-based macros (fetchAll=false)
+            try {
+                responseGoals = await axiosInstance.post<{
+                    foodId: string;
+                    name: string;
+                    serving_size: string;
+                    category: string;
+                    macros: FoodMacro[];
+                    totalWeight: number;
+                    totalNutrients?: any;
+                }>(`/api/premium_1/food-nutrients?fetchAll=false`, {
+                    foodId: food.foodId,
+                    quantity: targetQuantity,
+                    measure: targetMeasure,
+                    userId,
+                }, {
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                });
+                console.log('Food details (goal-based macros) response:', responseGoals.data);
+            } catch (err) {
+                const error = err as AxiosError<ErrorResponse>;
+                console.error('Error fetching goal-based macros (fetchAll=false):', error.response?.data || error.message);
+                // If both requests fail, throw an error to be caught by the outer try/catch
+                if (!responseAll) {
+                    throw new Error('Both nutrient requests failed.');
+                }
+            }
 
-            console.log('Food details (goal-based macros) response:', responseGoals.data);
+            // If responseGoals is still null (both requests failed), handle the error
+            if (!responseGoals && !responseAll) {
+                throw new Error('Failed to fetch nutrient data.');
+            }
 
-            // Create a Food object with the goal-based macros
+            // Construct foodWithMacros, using fallback values if responseGoals is null
             const foodWithMacros: Food = {
                 id: -1,
                 user_id: userId!,
-                name: responseGoals.data.name,
-                serving_size: responseGoals.data.serving_size,
-                category: responseGoals.data.category,
-                macros: responseGoals.data.macros,
+                name: responseGoals?.data.name ?? food.label ?? 'Unknown Food',
+                serving_size: responseGoals?.data.serving_size ?? '1 serving',
+                category: responseGoals?.data.category ?? 'Generic',
+                macros: responseGoals?.data.macros ?? [],
                 custom: false,
                 foodId: food.foodId,
             };
 
-            // Use totalNutrients if available and not empty; otherwise, fall back to goal-based macros
-            const nutrientsToDisplay = responseAll.data.totalNutrients && Object.keys(responseAll.data.totalNutrients).length > 0
+            // Determine nutrients to display
+            const nutrientsToDisplay = responseAll?.data.totalNutrients && Object.keys(responseAll.data.totalNutrients).length > 0
                 ? responseAll.data.totalNutrients
-                : responseGoals.data.macros.reduce((acc: { [key: string]: { label: string; quantity: number; unit: string } }, macro: FoodMacro) => {
-                    acc[macro.macro_name.toUpperCase()] = {
-                        label: macro.macro_name,
-                        quantity: macro.value,
-                        unit: macro.unit,
-                    };
-                    return acc;
-                }, {});
+                : {
+                    ...(responseGoals?.data.macros ?? []).reduce((acc: { [key: string]: { label: string; quantity: number; unit: string } }, macro: FoodMacro) => {
+                        acc[macro.macro_name.toUpperCase()] = {
+                            label: macro.macro_name,
+                            quantity: macro.value,
+                            unit: macro.unit,
+                        };
+                        return acc;
+                    }, {}),
+                    fallbackMessage: responseAll ? undefined : 'Unable to load full nutrient list; showing tracked nutrients only.',
+                };
 
             setFoodDetailsNutrients(nutrientsToDisplay);
             setSelectedFoodDetails(foodWithMacros);
@@ -684,7 +709,7 @@ const Dashboard: React.FC = () => {
             setShowFoodDetailsModal(true);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
-            console.error('Error fetching food details:', error.response?.data || error.message);
+            console.error('Error in fetchFoodDetails:', error.response?.data || error.message);
             setError(error.response?.data?.error || 'Failed to fetch food details.');
             setShowFoodDetailsModal(false);
             setSelectedFoodDetails(null);
@@ -692,6 +717,7 @@ const Dashboard: React.FC = () => {
             setFoodDetailsWeight(100);
         }
     };
+
     // Function to log food from the details modal
     const logFoodFromDetails = async () => {
         if (!selectedFoodDetails) return;

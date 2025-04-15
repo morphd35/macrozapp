@@ -171,12 +171,13 @@ const Dashboard: React.FC = () => {
             // console.log('Fetching daily summary from:', url);
             const res = await axiosInstance.get<DailySummary>(url);
             // console.log('Raw Daily Summary Response:', res.data);
-            const parsedSummary = res.data || {};
+            const parsedSummary = res.data && typeof res.data === 'object' ? res.data : {};
             setDailySummary(parsedSummary);
+            setError(null);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
             console.error('Fetch Summary Error:', error.response?.data || error.message);
-            setDailySummary(null);
+            setDailySummary({});
             setError(error.response?.data?.error || 'Failed to fetch daily summary.');
         } finally {
             setLoading(false);
@@ -479,6 +480,8 @@ const Dashboard: React.FC = () => {
             toast.error(error.response?.data?.error || 'Failed to log food.');
         }
     };
+
+
 
     const handleMacroChange = (macroName: string, value: number) => {
         setCustomFoodMacros(prev => ({
@@ -889,7 +892,9 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const hasNoEntries = dailySummary && Object.values(dailySummary).every(val => val === 0 || val === undefined);
+    const hasNoEntries = dailySummary && Object.keys(dailySummary).length > 0
+        ? Object.values(dailySummary).every(val => val === 0 || val === undefined)
+        : true;
 
     if (!userId && !error) {
         return <div>Loading...</div>;
@@ -948,15 +953,17 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
-            {hasNoEntries ? (
-                <p className="prompt">Start logging your food for today!</p>
-            ) : (
-                dailySummary && (
+            {/* Updated Daily Totals Rendering */}
+            {(() => {
+                if (!dailySummary || Object.keys(dailySummary).length === 0 || hasNoEntries) {
+                    return <p className="prompt">Start logging your food for today!</p>;
+                }
+                return (
                     <div className="card">
                         <h2>Daily Totals ({logDate})</h2>
                         {goals.map(goal => {
                             const macroKey = goal.macro_name.toLowerCase().replace(/\s+/g, '_');
-                            const currentValue = dailySummary[`total_${macroKey}`];
+                            const currentValue = dailySummary[`total_${macroKey}`] ?? 0;
                             return (
                                 <div key={goal.id} className="progress-item">
                                     <p>
@@ -964,16 +971,16 @@ const Dashboard: React.FC = () => {
                                     </p>
                                     <div className="progress-bar">
                                         <div
-                                            className={`progress-fill ${calculateProgress(currentValue, goal.target_value, goal.goal_type).status} `}
-                                            style={{ width: `${calculateProgress(currentValue, goal.target_value, goal.goal_type).percentage}% ` }}
+                                            className={`progress-fill ${calculateProgress(currentValue, goal.target_value, goal.goal_type).status}`}
+                                            style={{ width: `${calculateProgress(currentValue, goal.target_value, goal.goal_type).percentage}%` }}
                                         ></div>
                                     </div>
                                 </div>
                             );
                         })}
                     </div>
-                )
-            )}
+                );
+            })()}
 
             <div>
                 {/* AdSense for Free Users */}

@@ -226,6 +226,8 @@ router.put('/goals/:user_id/:macro_name', async (req, res) => {
 router.get('/:user_id/:date', async (req, res) => {
     const { user_id, date } = req.params;
     const parsedUserId = parseInt(user_id);
+    console.log('GET /food_logs/:user_id/:date endpoint reached');
+    console.log('Request params:', { user_id, date });
     if (isNaN(parsedUserId)) {
         return res.status(400).json({ error: 'user_id must be a valid integer' });
     }
@@ -247,13 +249,13 @@ router.get('/:user_id/:date', async (req, res) => {
             console.warn('Unexpected result from pluck, treating as empty array:', trackedMacrosRaw);
             trackedMacros = [];
         }
-
+        console.log('Processed tracked macros:', trackedMacros);
         // console.log('Processed tracked macros:', trackedMacros);
 
         const summary = {};
 
         if (!trackedMacros.length) {
-            // console.log('No tracked macros found for user', parsedUserId);
+            console.log('No tracked macros found for user', parsedUserId);
             return res.json(summary); // Return empty summary if no macros are tracked
         }
 
@@ -268,7 +270,7 @@ router.get('/:user_id/:date', async (req, res) => {
         // console.log('Food log IDs for user', parsedUserId, 'on', date, ':', foodLogs);
 
         if (!foodLogs.length) {
-            // console.log('No food logs found for user', parsedUserId, 'on', date);
+            console.log('No food logs found for user', parsedUserId, 'on', date);
             return res.json(summary); // Return empty summary if no food logs
         }
 
@@ -281,14 +283,14 @@ router.get('/:user_id/:date', async (req, res) => {
             .groupBy('macro_name')
             .select('macro_name', db.raw('SUM(total_value) as total'));
 
-        // console.log('Macro totals:', macroTotals);
+        console.log('Macro totals:', macroTotals);
 
         // Build the summary
         macroTotals.forEach(row => {
             summary[`total_${row.macro_name.toLowerCase()}`] = row.total || 0;
         });
 
-        // console.log('Daily summary for user', parsedUserId, 'on', date, ':', summary);
+        console.log('Daily summary for user', parsedUserId, 'on', date, ':', summary);
         res.json(summary);
     } catch (err) {
         console.error('Error in GET /:user_id/:date:', err.message, err.stack);

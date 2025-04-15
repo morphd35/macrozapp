@@ -168,9 +168,9 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         try {
             const url = `/api/food_logs/${userId}/${logDate}`;
-            // console.log('Fetching daily summary from:', url);
+            console.log('Fetching daily summary from:', url);
             const res = await axiosInstance.get<DailySummary>(url);
-            // console.log('Raw Daily Summary Response:', res.data);
+            console.log('Raw Daily Summary Response:', res.data);
             const parsedSummary = res.data && typeof res.data === 'object' ? res.data : {};
             setDailySummary(parsedSummary);
             setError(null);

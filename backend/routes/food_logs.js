@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 
-console.log('food_logs.js loaded - version 2025-04-15-v8');
+
 
 // Get goals for a user
 router.get('/goals/:user_id', async (req, res) => {
@@ -226,6 +226,7 @@ router.put('/goals/:user_id/:macro_name', async (req, res) => {
 
 // Get daily summary for a user and date
 router.post('/:user_id/:date', async (req, res) => {
+    console.log('food_logs.js loaded - version 2025-04-15-v8');
     const { user_id, date } = req.params;
     const parsedUserId = parseInt(user_id);
     console.log('POST /food_logs/:user_id/:date endpoint reached');

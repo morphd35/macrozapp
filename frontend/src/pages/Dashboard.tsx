@@ -167,7 +167,7 @@ const Dashboard: React.FC = () => {
         if (!userId) return;
         setLoading(true);
         try {
-            const url = `/api/food_logs/${userId}/${logDate}/${new Date().getTime()}`;
+            const url = `/api/food_logs/${userId}/${logDate}`;
             console.log('Fetching daily summary from:', url);
             const res = await axiosInstance.post<DailySummary>(url, {});
             console.log('Raw Daily Summary Response:', res.data);

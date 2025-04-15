@@ -2,7 +2,7 @@
 const express = require('express');
 const router = express.Router();
 
-console.log('food_logs.js loaded - version 2025-04-15');
+console.log('food_logs.js loaded - version 2025-04-15-v5');
 
 // Get goals for a user
 router.get('/goals/:user_id', async (req, res) => {
@@ -225,14 +225,16 @@ router.put('/goals/:user_id/:macro_name', async (req, res) => {
 });
 
 // Get daily summary for a user and date
-router.get('/:user_id/:date', async (req, res) => {
+router.post('/:user_id/:date', async (req, res) => {
     const { user_id, date } = req.params;
     const parsedUserId = parseInt(user_id);
-    console.log('GET /food_logs/:user_id/:date endpoint reached');
+    console.log('POST /food_logs/:user_id/:date endpoint reached');
     console.log('Request params:', { user_id, date });
     if (isNaN(parsedUserId)) {
         return res.status(400).json({ error: 'user_id must be a valid integer' });
     }
+
+    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
 
     try {
         const db = req.app.get('db');
@@ -266,10 +268,15 @@ router.get('/:user_id/:date', async (req, res) => {
             .join('foods', 'food_logs.food_id', 'foods.id')
             .where('food_logs.user_id', parsedUserId)
             .andWhere(db.raw('DATE(food_logs.log_date) = ?', [date]))
-            .andWhere('foods.user_id', parsedUserId) // Filter foods by user_id
-            .select('food_logs.id');
+            // .andWhere('foods.user_id', parsedUserId) // Filter foods by user_id
+            // .select('food_logs.id');
+            .select('food_logs.id', 'food_logs.servings', 'food_logs.log_date', 'foods.name');
 
         // console.log('Food log IDs for user', parsedUserId, 'on', date, ':', foodLogs);
+        console.log('Food logs for user', parsedUserId, 'on', date, ':', foodLogs.map(log => ({
+            ...log,
+            log_date: log.log_date.toISOString(),
+        })));
 
         if (!foodLogs.length) {
             console.log('No food logs found for user', parsedUserId, 'on', date);
@@ -284,6 +291,21 @@ router.get('/:user_id/:date', async (req, res) => {
             .whereIn(db.raw('LOWER(macro_name)'), trackedMacros)
             .groupBy('macro_name')
             .select('macro_name', db.raw('SUM(total_value) as total'));
+
+
+        let macroTotals;
+        if (trackedMacros.length) {
+            macroTotals = await db('food_log_macros')
+                .whereIn('food_log_id', logIds)
+                .whereIn(db.raw('LOWER(macro_name)'), trackedMacros)
+                .groupBy('macro_name')
+                .select(db.raw('LOWER(macro_name) as macro_name'), db.raw('SUM(total_value) as total'));
+        } else {
+            macroTotals = await db('food_log_macros')
+                .whereIn('food_log_id', logIds)
+                .groupBy('macro_name')
+                .select(db.raw('LOWER(macro_name) as macro_name'), db.raw('SUM(total_value) as total'));
+        }
 
         console.log('Macro totals:', macroTotals);
 

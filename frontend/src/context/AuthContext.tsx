@@ -1,8 +1,7 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { AxiosError } from 'axios';
 
-// Use the API base URL from environment variables
 const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000';
 
 interface User {
@@ -19,7 +18,7 @@ interface AuthContextType {
     token: string | null;
     login: (email: string, password: string) => Promise<void>;
     logout: () => void;
-    refreshUser: () => Promise<void>; // Add refreshUser to context
+    refreshUser: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextType>({
@@ -27,7 +26,7 @@ export const AuthContext = createContext<AuthContextType>({
     token: null,
     login: async () => { },
     logout: () => { },
-    refreshUser: async () => { }, // Add default refreshUser
+    refreshUser: async () => { },
 });
 
 interface AuthProviderProps {
@@ -39,9 +38,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const [token, setToken] = useState<string | null>(localStorage.getItem('token'));
     const [isInitialized, setIsInitialized] = useState(false);
 
-    // Function to fetch user data from /api/auth/me
-    const fetchUserData = async (currentToken: string) => {
-        if (!currentToken) return;
+    const fetchUserData = useCallback(async (currentToken: string) => {
+        if (!currentToken) {
+            console.log('Skipping fetchUserData: No token');
+            return;
+        }
+
         try {
             console.log('Fetching user data with token:', currentToken);
             console.log('Request URL:', `${API_BASE_URL}/api/premium_1/me`);
@@ -61,20 +63,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             setUser(userData);
         } catch (error: unknown) {
             const axiosError = error as AxiosError;
-            console.error('Error fetching user data:', axiosError.response?.status, axiosError.response?.data || axiosError.message);
-            localStorage.removeItem('token');
-            setToken(null);
-            setUser(null);
+            console.error('Error fetching user data:', {
+                status: axiosError.response?.status,
+                data: axiosError.response?.data,
+                message: axiosError.message,
+            });
+            if (axiosError.response?.status === 401) {
+                console.log('Invalid token, logging out');
+                localStorage.removeItem('token');
+                setToken(null);
+                setUser(null);
+            } else {
+                console.log('Non-auth error, keeping user logged in');
+            }
         }
-    };
+    }, []);
 
-    // Initialize token from localStorage on mount
     useEffect(() => {
         const storedToken = localStorage.getItem('token');
         console.log('Token in localStorage on mount:', storedToken);
         if (storedToken) {
             setToken(storedToken);
-            fetchUserData(storedToken);
         } else {
             console.log('No token found in localStorage on mount');
             setUser(null);
@@ -82,27 +91,22 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setIsInitialized(true);
     }, []);
 
-    // Fetch user data on mount or when token changes
     useEffect(() => {
         if (isInitialized && token) {
             fetchUserData(token);
         }
-    }, [token, isInitialized]);
+    }, [token, isInitialized, fetchUserData]);
 
     const login = async (username: string, password: string) => {
         try {
-            // Clear existing token and user data
             localStorage.removeItem('token');
             setToken(null);
             setUser(null);
-            // Perform login
             const response = await axios.post(`${API_BASE_URL}/api/login`, { username, password });
             const { token } = response.data;
             console.log('Login response:', response.data);
-            // Update localStorage and state
             localStorage.setItem('token', token);
             setToken(token);
-            // Immediately fetch user data with the new token
             await fetchUserData(token);
         } catch (error: unknown) {
             const axiosError = error as AxiosError;
@@ -112,13 +116,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     };
 
     const logout = () => {
+        console.log('User logged out, user set to null');
         localStorage.removeItem('token');
         setToken(null);
         setUser(null);
-        console.log('User logged out, user set to null');
     };
 
-    // Expose a function to refresh user data
     const refreshUser = async () => {
         if (token) {
             await fetchUserData(token);

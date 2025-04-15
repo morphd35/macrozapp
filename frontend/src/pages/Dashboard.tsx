@@ -8,10 +8,10 @@ import SearchIcon from '@mui/icons-material/Search';
 import InfoIcon from '@mui/icons-material/Info';
 import { jwtDecode } from 'jwt-decode';
 import axiosInstance from '../utils/axiosConfig';
-import { Link, useLocation, useNavigate } from 'react-router-dom'; // Add Link for the upgrade prompt
-import { AuthContext } from '../context/AuthContext'; // Add AuthContext
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import FoodLookup, { FoodLookupRef } from '../FoodLookup';
-import { FoodItem } from '../types'; // Import the shared type
+import { FoodItem } from '../types';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import '../App.css';
@@ -47,7 +47,6 @@ interface Food {
     macros: FoodMacro[];
     custom?: boolean;
     foodId?: string;
-
 }
 
 interface Category {
@@ -102,21 +101,23 @@ const Dashboard: React.FC = () => {
     const [showLogWeightModal, setShowLogWeightModal] = useState(false);
     const [weight, setWeight] = useState<number>(0);
     const [error, setError] = useState<string | null>('');
-    const [customFoodMacros, setCustomFoodMacros] = useState<{ [key: string]: number }>({}); // Track macro values for the form
-    const [searchResults, setSearchResults] = useState<FoodItem[]>([]); // New state for search results
-    const [searchQuery, setSearchQuery] = useState<string>(''); // New state for search query
-    const [dashboardSearchQuery, setDashboardSearchQuery] = useState<string>(''); // New state for dashboard search
+    const [customFoodMacros, setCustomFoodMacros] = useState<{ [key: string]: number }>({});
+    const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
+    const [searchQuery, setSearchQuery] = useState<string>('');
+    const [dashboardSearchQuery, setDashboardSearchQuery] = useState<string>('');
     const [hasFetchedInitialData, setHasFetchedInitialData] = useState(false);
     const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
     const foodLookupRef = useRef<FoodLookupRef>(null);
-    // State for the Food Details Modal
     const [showFoodDetailsModal, setShowFoodDetailsModal] = useState(false);
     const [selectedFoodDetails, setSelectedFoodDetails] = useState<Food | FoodItem | null>(null);
     const [foodDetailsNutrients, setFoodDetailsNutrients] = useState<any>(null);
     const [foodDetailsServings, setFoodDetailsServings] = useState<number>(1);
     const [foodDetailsWeight, setFoodDetailsWeight] = useState<number>(100);
+    const [foodQuery, setFoodQuery] = useState<string>('');
+    const [edamamError, setEdamamError] = useState<string | null>(null);
+    const [shouldLog, setShouldLog] = useState(true);
 
-    // Custom type guard to narrow FoodItem
+    // Type guard to narrow FoodItem
     function isFoodItem(item: Food | FoodItem): item is FoodItem {
         return 'label' in item;
     }
@@ -138,30 +139,38 @@ const Dashboard: React.FC = () => {
     // AdSense and upgrade prompt logic
     useEffect(() => {
         if (userStatus === 'free') {
-            // Queue the ad request
-            (window.adsbygoogle = window.adsbygoogle || []).push({});
-            setTimeout(() => setShowUpgradePrompt(true), 5000); // Show prompt after 5s
+            try {
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+                setTimeout(() => setShowUpgradePrompt(true), 5000);
+            } catch (e) {
+                console.error('AdSense error:', e);
+            }
         }
     }, [userStatus]);
 
-
     useEffect(() => {
-        // console.log('Token changed:', stableToken);
-        if (stableToken && !userId) { // Only set userId if it hasn't been set
+        if (token) {
             try {
-                const decoded: { id: number; username: string } = jwtDecode(stableToken);
+                const decoded: { id: number; username: string } = jwtDecode(token);
                 setUserId(decoded.id);
+                console.log('Set userId from token:', decoded.id);
                 localStorage.setItem('user_id', decoded.id.toString());
             } catch (err) {
                 console.error('Error decoding token:', err);
                 setError('Invalid token. Please log in again.');
                 localStorage.removeItem('token');
                 localStorage.removeItem('user_id');
+                setUserId(null);
+                setGoals([]);
+                setDailySummary(null);
             }
-        } else if (!stableToken) {
+        } else {
             setError('No token found. Please log in.');
+            setUserId(null);
+            setGoals([]);
+            setDailySummary(null);
         }
-    }, [stableToken, userId]);
+    }, [token]);
 
     const fetchDailySummary = useCallback(async () => {
         if (!userId) return;
@@ -189,9 +198,7 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         try {
             const res = await axiosInstance.get<MacroGoal[]>(`/api/food_logs/goals/${userId}`);
-            // console.log('Goals Response:', res.data);
             setGoals(res.data || []);
-            // Initialize customFoodMacros with tracked macros
             const initialMacros = res.data.reduce((acc, goal) => {
                 acc[goal.macro_name] = 0;
                 return acc;
@@ -214,7 +221,6 @@ const Dashboard: React.FC = () => {
             const res = await axiosInstance.get<Food[]>('/api/food_logs/foods', {
                 params: { user_id: userId },
             });
-            // console.log('Fetched foods:', res.data);
             setFoods(res.data);
         } catch (err) {
             const error = err as AxiosError<ErrorResponse>;
@@ -229,7 +235,6 @@ const Dashboard: React.FC = () => {
         setLoading(true);
         try {
             const res = await axiosInstance.get<Category[]>('/api/categories');
-            // console.log('Fetched categories:', res.data);
             setCategories(res.data);
         } catch (err) {
             console.error('Fetch Categories Error:', err);
@@ -240,35 +245,10 @@ const Dashboard: React.FC = () => {
         }
     }, []);
 
-    useEffect(() => {
-        // console.log('Token changed:', token);
-        if (token) {
-            try {
-                const decoded: { id: number; username: string } = jwtDecode(token);
-                setUserId(decoded.id);
-                console.log('Set userId from token:', decoded.id);
-                localStorage.setItem('user_id', decoded.id.toString());
-            } catch (err) {
-                console.error('Error decoding token:', err);
-                setError('Invalid token. Please log in again.');
-                localStorage.removeItem('token');
-                localStorage.removeItem('user_id');
-            }
-        } else {
-            setError('No token found. Please log in.');
-            setUserId(null);
-            setGoals([]);
-            setDailySummary(null);
-        }
-    }, [token]);
-
-    // useEffect(() => {
-    //     // console.log('Dashboard re-rendered, state:', { userId, foodsLength: foods.length, searchResultsLength: searchResults.length, foodQuery, showLogModal });
-    // });
-
+    // Fetch initial data only once when userId and logDate change
     useEffect(() => {
         if (userId) {
-            console.log('UserId before fetching data:', userId);
+            console.log('UserId before fetching data:', userId, 'logDate:', logDate);
             fetchDailySummary();
             if (!hasFetchedInitialData) {
                 fetchGoals();
@@ -276,23 +256,20 @@ const Dashboard: React.FC = () => {
                 fetchCategories();
                 setHasFetchedInitialData(true);
             }
-            else {
-                console.log('No userId, skipping data fetch');
-                setGoals([]);
-                setDailySummary(null);
-            }
+        } else {
+            console.log('No userId, skipping data fetch');
+            setGoals([]);
+            setDailySummary(null);
         }
-    }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, hasFetchedInitialData, logDate]);
+    }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, logDate]);
 
     // Refetch user data if payment was just verified
     useEffect(() => {
         if (location.state?.paymentVerified && token) {
-            // console.log('Payment verified, refetching user data...');
             refreshUser();
-            // Clear the paymentVerified flag by updating the location state
             navigate(location.pathname, { state: { ...location.state, paymentVerified: false }, replace: true });
         }
-    }, [location.state, token, refreshUser]);
+    }, [location.state, token, refreshUser, navigate]);
 
     const addCategory = async () => {
         if (newCategory.trim()) {
@@ -347,7 +324,6 @@ const Dashboard: React.FC = () => {
                 weight_lb: weight,
                 log_date: logDate,
             });
-            // console.log('Log Weight Response:', response.data);
             setShowLogWeightModal(false);
             setWeight(0);
             setSuccess('Weight logged successfully!');
@@ -381,10 +357,9 @@ const Dashboard: React.FC = () => {
                     category,
                     macros,
                 });
-                // console.log('Add Food Response:', res.data);
                 const newFood = { ...res.data, custom: true };
                 setFoods(prevFoods => [...prevFoods, { ...res.data, custom: true }]);
-                await fetchFoods(); // Re-fetch to ensure consistency
+                await fetchFoods();
                 setShowAddFoodModal(false);
                 setCustomFoodMacros(goals.reduce((acc, goal) => {
                     acc[goal.macro_name] = 0;
@@ -402,7 +377,6 @@ const Dashboard: React.FC = () => {
     };
 
     const parseQuery = (query: string) => {
-        // Match "X oz" or "X cup" (including fractions like "1/2")
         const ozMatch = query.match(/(\d*\.?\d+|\d+\/\d+)\s*oz/i);
         const cupMatch = query.match(/(\d*\.?\d+|\d+\/\d+)\s*cup/i);
 
@@ -418,14 +392,13 @@ const Dashboard: React.FC = () => {
         return { unit: null, amount: null, foodName: query.trim() };
     };
 
-    // Log the food selected
     const logFood = async (food: Food | FoodItem, servings: number = 1) => {
         if (!food || !userId) {
             toast.error('Please select a food and ensure you are logged in.');
             return;
         }
 
-        const finalServings = Math.max(0.1, servings); // Ensure at least 1 when logging
+        const finalServings = Math.max(0.1, servings);
 
         try {
             let foodToLog: Food;
@@ -449,7 +422,7 @@ const Dashboard: React.FC = () => {
                 const newFoodData = {
                     user_id: userId,
                     name: foodItem.label ? foodItem.label.split(' - ')[0] : (food as Food).name.split(' - ')[0] || 'Unknown Food',
-                    serving_size: foodItem.serving_size || (food as Food).serving_size || '1 serving', // Use the scaled serving_size
+                    serving_size: foodItem.serving_size || (food as Food).serving_size || '1 serving',
                     category: foodItem.category || (food as Food).category || 'Generic',
                     macros,
                 };
@@ -481,24 +454,121 @@ const Dashboard: React.FC = () => {
         }
     };
 
-
-
     const handleMacroChange = (macroName: string, value: number) => {
         setCustomFoodMacros(prev => ({
             ...prev,
-            [macroName]: Math.max(0, value), // Prevent negative values
+            [macroName]: Math.max(0, value),
         }));
     };
-    const [foodQuery, setFoodQuery] = useState<string>('');
-    // const debouncedSetFoodQuery = useMemo(() => debounce((value: string) => {
-    //     setFoodQuery(value);
-    // }, 300), [setFoodQuery]);
 
-    // useEffect(() => {
-    //     console.log('foodQuery changed:', foodQuery);
-    // }, [foodQuery]);
+    const fetchFoodDetails = async (food: FoodItem) => {
+        try {
+            const { unit, amount } = parseQuery(food.label);
+            let targetQuantity = 1;
+            let targetMeasure = 'serving';
 
-    const [edamamError, setEdamamError] = useState<string | null>(null); // New state for Edamam-specific errors
+            const defaultMeasure = food.measures?.find(measure => measure.label === 'Serving') || food.measures?.[0];
+            const baseWeightGrams = defaultMeasure ? defaultMeasure.weight : 100;
+
+            if (unit === 'oz' && amount) {
+                targetQuantity = amount;
+                targetMeasure = 'ounce';
+            } else if (unit === 'cup' && amount) {
+                targetQuantity = amount;
+                targetMeasure = 'cup';
+            }
+
+            const payload = {
+                foodId: food.foodId,
+                quantity: targetQuantity,
+                measure: targetMeasure,
+                userId,
+            };
+
+            console.log('Fetching food details with payload:', payload, 'fetchAll=true');
+
+            const responseAll = await axiosInstance.post<{
+                foodId: string;
+                name: string;
+                serving_size: string;
+                category: string;
+                macros: any[];
+                totalWeight: number;
+                totalNutrients: any;
+            }>(`/api/premium_1/food-nutrients?fetchAll=true`, payload, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            console.log('Food details (all nutrients) response:', responseAll.data);
+
+            const responseGoals = await axiosInstance.post<{
+                foodId: string;
+                name: string;
+                serving_size: string;
+                category: string;
+                macros: FoodMacro[];
+                totalWeight: number;
+                totalNutrients?: any;
+            }>(`/api/premium_1/food-nutrients?fetchAll=false`, {
+                foodId: food.foodId,
+                quantity: targetQuantity,
+                measure: targetMeasure,
+                userId,
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            });
+
+            console.log('Food details (goal-based macros) response:', responseGoals.data);
+
+            const foodWithMacros: Food = {
+                id: -1,
+                user_id: userId!,
+                name: responseGoals.data.name,
+                serving_size: responseGoals.data.serving_size,
+                category: responseGoals.data.category,
+                macros: responseGoals.data.macros,
+                custom: false,
+                foodId: food.foodId,
+            };
+
+            const nutrientsToDisplay = responseAll.data.totalNutrients && Object.keys(responseAll.data.totalNutrients).length > 0
+                ? responseAll.data.totalNutrients
+                : responseGoals.data.macros.reduce((acc: { [key: string]: { label: string; quantity: number; unit: string } }, macro: FoodMacro) => {
+                    acc[macro.macro_name.toUpperCase()] = {
+                        label: macro.macro_name,
+                        quantity: macro.value,
+                        unit: macro.unit,
+                    };
+                    return acc;
+                }, {});
+
+            setFoodDetailsNutrients(nutrientsToDisplay);
+            setSelectedFoodDetails(foodWithMacros);
+            setFoodDetailsWeight(baseWeightGrams);
+            setShowFoodDetailsModal(true);
+        } catch (err) {
+            const error = err as AxiosError<ErrorResponse>;
+            console.error('Error fetching food details:', error.response?.data || error.message);
+            setError(error.response?.data?.error || 'Failed to fetch food details.');
+            setShowFoodDetailsModal(false);
+            setSelectedFoodDetails(null);
+            setFoodDetailsNutrients(null);
+            setFoodDetailsWeight(100);
+        }
+    };
+
+    const logFoodFromDetails = async () => {
+        if (!selectedFoodDetails) return;
+        await logFood(selectedFoodDetails, foodDetailsServings);
+        setShowFoodDetailsModal(false);
+        setSelectedFoodDetails(null);
+        setFoodDetailsNutrients(null);
+        setFoodDetailsServings(1);
+    };
 
     const handleSearchResults = useCallback((results: FoodItem[], query: string) => {
         const uniqueResults = Array.from(
@@ -566,16 +636,15 @@ const Dashboard: React.FC = () => {
                 caffeine: item.nutrients.caffeine ? item.nutrients.caffeine * scaleFactor : undefined,
             };
 
-            // Add preparation state to the label (e.g., "Cooked" or "Uncooked")
             let preparationState = '';
             if (item.category?.toLowerCase().includes('cooked') || query.toLowerCase().includes('cooked')) {
                 preparationState = 'Cooked';
             } else if (item.category?.toLowerCase().includes('raw') || item.category?.toLowerCase().includes('uncooked')) {
                 preparationState = 'Uncooked';
-            } else if (scaledNutrients.calories > 300 && targetGrams <= 113.398) { // Heuristic: High calories for small weight suggests uncooked
+            } else if (scaledNutrients.calories > 300 && targetGrams <= 113.398) {
                 preparationState = 'Uncooked';
             } else {
-                preparationState = 'Cooked'; // Default to cooked for most foods
+                preparationState = 'Cooked';
             }
 
             return {
@@ -591,132 +660,7 @@ const Dashboard: React.FC = () => {
         setSearchResults(convertedResults as FoodItem[]);
     }, []);
 
-    // Function to fetch all nutrients for a food item
-    const fetchFoodDetails = async (food: FoodItem) => {
-        try {
-            const { unit, amount } = parseQuery(food.label);
-            let targetQuantity = 1;
-            let targetMeasure = 'serving';
-
-            const defaultMeasure = food.measures?.find(measure => measure.label === 'Serving') || food.measures?.[0];
-            const defaultWeightGrams = defaultMeasure ? defaultMeasure.weight : 100;
-
-            if (unit === 'oz' && amount) {
-                targetQuantity = amount;
-                targetMeasure = 'ounce';
-            } else if (unit === 'cup' && amount) {
-                targetQuantity = amount;
-                targetMeasure = 'cup';
-            }
-
-            const payload = {
-                foodId: food.foodId,
-                quantity: targetQuantity,
-                measure: targetMeasure,
-                userId,
-            };
-
-            console.log('Fetching food details with payload:', payload, 'fetchAll=true');
-
-            // Fetch all nutrients for display
-
-            const responseAll = await axiosInstance.post<{
-                foodId: string;
-                name: string;
-                serving_size: string;
-                category: string;
-                macros: any[];
-                totalWeight: number;
-                totalNutrients: any;
-            }>(`/api/premium_1/food-nutrients?fetchAll=true`, payload, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            console.log('Food details (all nutrients) response:', responseAll.data);
-
-            // Fetch user goal-based macros for logging
-            const responseGoals = await axiosInstance.post<{
-                foodId: string;
-                name: string;
-                serving_size: string;
-                category: string;
-                macros: FoodMacro[];
-                totalWeight: number;
-                totalNutrients?: any;
-            }>(`/api/premium_1/food-nutrients?fetchAll=false`, {
-                foodId: food.foodId,
-                quantity: targetQuantity,
-                measure: targetMeasure,
-                userId,
-            }, {
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            });
-
-            console.log('Food details (goal-based macros) response:', responseGoals.data);
-
-            // Create a Food object with the goal-based macros
-            const foodWithMacros: Food = {
-                id: -1,
-                user_id: userId!,
-                name: responseGoals.data.name,
-                serving_size: responseGoals.data.serving_size,
-                category: responseGoals.data.category,
-                macros: responseGoals.data.macros,
-                custom: false,
-                foodId: food.foodId,
-            };
-
-            // Use totalNutrients if available and not empty; otherwise, fall back to goal-based macros
-            const nutrientsToDisplay = responseAll.data.totalNutrients && Object.keys(responseAll.data.totalNutrients).length > 0
-                ? responseAll.data.totalNutrients
-                : responseGoals.data.macros.reduce((acc: { [key: string]: { label: string; quantity: number; unit: string } }, macro: FoodMacro) => {
-                    acc[macro.macro_name.toUpperCase()] = {
-                        label: macro.macro_name,
-                        quantity: macro.value,
-                        unit: macro.unit,
-                    };
-                    return acc;
-                }, {});
-
-            setFoodDetailsNutrients(nutrientsToDisplay);
-            setSelectedFoodDetails(foodWithMacros);
-            setFoodDetailsWeight(defaultWeightGrams);
-            setShowFoodDetailsModal(true);
-        } catch (err) {
-            const error = err as AxiosError<ErrorResponse>;
-            console.error('Error fetching food details:', error.response?.data || error.message);
-            setError(error.response?.data?.error || 'Failed to fetch food details.');
-            setShowFoodDetailsModal(false);
-            setSelectedFoodDetails(null);
-            setFoodDetailsNutrients(null);
-            setFoodDetailsWeight(100);
-        }
-    };
-    // Function to log food from the details modal
-    const logFoodFromDetails = async () => {
-        if (!selectedFoodDetails) return;
-        await logFood(selectedFoodDetails, foodDetailsServings);
-        setShowFoodDetailsModal(false);
-        setSelectedFoodDetails(null);
-        setFoodDetailsNutrients(null);
-        setFoodDetailsServings(1);
-    };
-
-    // useEffect(() => {
-    //     console.log('foodQuery changed:', foodQuery);
-    // }, [foodQuery]);
-
-    // Add debug log for re-renders
-    // useEffect(() => {
-    //     console.log('Dashboard re-rendered, state:', { userId, foods, searchResults, searchQuery, showLogModal });
-    // });
-
     const memoizedUserFoods = useMemo(() => {
-        // console.log('memoizedUserFoods recalculated, foods:', foods);
         return foods.map(food => {
             const mappedFood = {
                 foodId: food.id.toString(),
@@ -737,9 +681,7 @@ const Dashboard: React.FC = () => {
                 },
                 serving_size: food.serving_size,
                 custom: true,
-
             };
-            // console.log('Mapped food:', mappedFood);
             return mappedFood;
         });
     }, [foods]);
@@ -748,19 +690,16 @@ const Dashboard: React.FC = () => {
         if (!foodQuery.trim()) {
             return memoizedUserFoods.map(food => ({
                 ...food,
-                source: 'local' as const, // Add source field
+                source: 'local' as const,
             }));
         }
         return memoizedUserFoods
             .filter(food => food.label.toLowerCase().includes(foodQuery.toLowerCase()))
             .map(food => ({
                 ...food,
-                source: 'local' as const, // Add source field
+                source: 'local' as const,
             }));
     }, [foodQuery, memoizedUserFoods]);
-
-    const [shouldLog, setShouldLog] = useState(true);
-
 
     const handleFoodSelect = async (data: FoodItem) => {
         console.log('handleFoodSelect called with data:', data);
@@ -801,12 +740,10 @@ const Dashboard: React.FC = () => {
                         foodId,
                     };
                 } else {
-                    // Parse the serving size from the search result (e.g., "4 oz")
                     const { unit, amount } = parseQuery(label);
                     let targetQuantity = 1;
                     let targetMeasure = 'serving';
 
-                    // Find the default serving size from measures
                     const defaultMeasure = measures?.find(measure => measure.label === 'Serving') || measures?.[0];
                     const defaultWeightGrams = defaultMeasure ? defaultMeasure.weight : 100;
 
@@ -817,12 +754,10 @@ const Dashboard: React.FC = () => {
                         targetQuantity = amount;
                         targetMeasure = 'cup';
                     } else {
-                        // Use the default serving size from Edamam
                         targetQuantity = 1;
                         targetMeasure = 'serving';
                     }
 
-                    // Fetch detailed nutrients with the correct quantity and measure
                     const nutrientsResponse = await axiosInstance.post<{
                         foodId: string;
                         name: string;
@@ -942,10 +877,6 @@ const Dashboard: React.FC = () => {
                         <SearchIcon style={{ cursor: 'pointer' }} />
                     </div>
                     <div>
-                        {/* <button className="button-with-icon" onClick={() => setShowLogModal(true)}>
-                            <RestaurantIcon className="icon" />
-                            Log Food
-                        </button> */}
                         <button className="button-with-icon" onClick={() => setShowLogWeightModal(true)}>
                             <FitnessCenterIcon className="icon" />
                             Log Weight
@@ -953,7 +884,6 @@ const Dashboard: React.FC = () => {
                     </div>
                 </div>
             </div>
-            {/* Updated Daily Totals Rendering */}
             {(() => {
                 if (!dailySummary || Object.keys(dailySummary).length === 0 || hasNoEntries) {
                     return <p className="prompt">Start logging your food for today!</p>;
@@ -983,7 +913,6 @@ const Dashboard: React.FC = () => {
             })()}
 
             <div>
-                {/* AdSense for Free Users */}
                 {userStatus === 'free' && (
                     <div className="ad-container" style={{ margin: '20px 0' }}>
                         <ins
@@ -996,7 +925,6 @@ const Dashboard: React.FC = () => {
                     </div>
                 )}
 
-                {/* Upgrade Prompt for Free Users */}
                 {userStatus === 'free' && showUpgradePrompt && (
                     <div className="upgrade-prompt">
                         <p>Remove ads and unlock premium features!</p>
@@ -1005,7 +933,6 @@ const Dashboard: React.FC = () => {
                         <button onClick={() => setShowUpgradePrompt(false)}>Dismiss</button>
                     </div>
                 )}
-
 
                 {showLogModal && (
                     <>
@@ -1202,7 +1129,6 @@ const Dashboard: React.FC = () => {
                     </>
                 )}
 
-                {/* Food Details Modal with info*/}
                 {showFoodDetailsModal && selectedFoodDetails && (
                     <>
                         <div className="modal-backdrop" onClick={() => {
@@ -1290,162 +1216,156 @@ const Dashboard: React.FC = () => {
                 )}
             </div>
 
-            {
-                showLogWeightModal && (
-                    <>
-                        <div className="modal-backdrop" onClick={() => setShowLogWeightModal(false)} />
-                        <div className="modal">
-                            <h3>Log Weight</h3>
-                            <div className="form-grid">
-                                <label>
-                                    Date
-                                    <div className="input-with-icon">
-                                        <CalendarTodayIcon className="icon" />
-                                        <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
-                                    </div>
-                                </label>
-                                <label>
-                                    Weight (lbs)
+            {showLogWeightModal && (
+                <>
+                    <div className="modal-backdrop" onClick={() => setShowLogWeightModal(false)} />
+                    <div className="modal">
+                        <h3>Log Weight</h3>
+                        <div className="form-grid">
+                            <label>
+                                Date
+                                <div className="input-with-icon">
+                                    <CalendarTodayIcon className="icon" />
+                                    <input type="date" value={logDate} onChange={e => setLogDate(e.target.value)} />
+                                </div>
+                            </label>
+                            <label>
+                                Weight (lbs)
+                                <input
+                                    type="number"
+                                    value={weight}
+                                    onChange={e => setWeight(parseFloat(e.target.value) || 0)}
+                                    step="0.1"
+                                    min="0"
+                                    onFocus={(e) => {
+                                        if (e.target.value === '0') {
+                                            e.target.value = '';
+                                        }
+                                    }}
+                                />
+                            </label>
+                            <div>
+                                <button className="button-with-icon" onClick={logWeight}>
+                                    <FitnessCenterIcon className="icon" />
+                                    Log Weight
+                                </button>
+                            </div>
+                        </div>
+                        <button type="button" onClick={() => setShowLogWeightModal(false)}>Cancel</button>
+                    </div>
+                </>
+            )}
+
+            {showAddFoodModal && (
+                <>
+                    <div className="modal-backdrop" onClick={() => setShowAddFoodModal(false)} />
+                    <div className="modal">
+                        <h3>Add Custom Food</h3>
+                        <form onSubmit={addCustomFood}>
+                            <label>
+                                Name
+                                <input type="text" name="name" required />
+                            </label>
+                            <label>
+                                Serving Size
+                                <input type="text" name="serving_size" required />
+                            </label>
+                            {goals.map(goal => (
+                                <label key={goal.macro_name}>
+                                    {goal.macro_name} ({goal.unit})
                                     <input
                                         type="number"
-                                        value={weight}
-                                        onChange={e => setWeight(parseFloat(e.target.value) || 0)}
+                                        name={`macro_${goal.macro_name}`}
                                         step="0.1"
+                                        value={customFoodMacros[goal.macro_name] || 0}
+                                        onChange={e => handleMacroChange(goal.macro_name, parseFloat(e.target.value) || 0)}
                                         min="0"
                                         onFocus={(e) => {
                                             if (e.target.value === '0') {
-                                                e.target.value = ''; // Clear the 0 on focus
+                                                e.target.value = '';
                                             }
                                         }}
                                     />
                                 </label>
-                                <div>
-                                    <button className="button-with-icon" onClick={logWeight}>
-                                        <FitnessCenterIcon className="icon" />
-                                        Log Weight
-                                    </button>
-                                </div>
-                            </div>
-                            <button type="button" onClick={() => setShowLogWeightModal(false)}>Cancel</button>
-                        </div>
-                    </>
-                )
-            }
-
-            {
-                showAddFoodModal && (
-                    <>
-                        <div className="modal-backdrop" onClick={() => setShowAddFoodModal(false)} />
-                        <div className="modal">
-                            <h3>Add Custom Food</h3>
-                            <form onSubmit={addCustomFood}>
-                                <label>
-                                    Name
-                                    <input type="text" name="name" required />
-                                </label>
-                                <label>
-                                    Serving Size
-                                    <input type="text" name="serving_size" required />
-                                </label>
-                                {goals.map(goal => (
-                                    <label key={goal.macro_name}>
-                                        {goal.macro_name} ({goal.unit})
-                                        <input
-                                            type="number"
-                                            name={`macro_${goal.macro_name} `}
-                                            step="0.1" // Allow decimal values for all macros
-                                            value={customFoodMacros[goal.macro_name] || 0}
-                                            onChange={e => handleMacroChange(goal.macro_name, parseFloat(e.target.value) || 0)}
-                                            min="0"
-                                            onFocus={(e) => {
-                                                if (e.target.value === '0') {
-                                                    e.target.value = ''; // Clear the 0 on focus
-                                                }
-                                            }}
-                                        />
-                                    </label>
-                                ))}
-                                <label>
-                                    Category
-                                    <select name="category" required>
-                                        <option value="">Select Category</option>
-                                        {categories.map(category => (
-                                            <option key={category.id} value={category.name}>
-                                                {category.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </label>
-                                <button type="button" onClick={() => setShowCategoryModal(true)}>
-                                    Manage Categories
-                                </button>
-                                <button type="submit">Add Food</button>
-                                <button type="button" onClick={() => setShowAddFoodModal(false)}>Cancel</button>
-                            </form>
-                        </div>
-                    </>
-                )
-            }
-
-            {
-                showCategoryModal && (
-                    <>
-                        <div className="modal-backdrop" onClick={() => setShowCategoryModal(false)} />
-                        <div className="modal" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
-                            <h3>Manage Categories</h3>
-                            <div className="category-modal-content">
-                                <div className="new-category-section">
-                                    <label>
-                                        New Category
-                                        <input
-                                            type="text"
-                                            value={newCategory}
-                                            onChange={e => setNewCategory(e.target.value)}
-                                            placeholder="Enter new category"
-                                        />
-                                    </label>
-                                    <button onClick={addCategory}>Add Category</button>
-                                </div>
-                                <ul>
+                            ))}
+                            <label>
+                                Category
+                                <select name="category" required>
+                                    <option value="">Select Category</option>
                                     {categories.map(category => (
-                                        <li key={category.id}>
-                                            {editingCategory && editingCategory.id === category.id ? (
-                                                <>
-                                                    <input
-                                                        type="text"
-                                                        value={editingCategory.name}
-                                                        onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                                                    />
-                                                    <button className="save-btn" onClick={editCategory}>Save</button>
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <span>{category.name}</span>
-                                                    <div className="category-actions">
-                                                        <button className="edit-btn" onClick={() => setEditingCategory(category)}>Edit</button>
-                                                        <button className="delete-btn" onClick={() => deleteCategory(category.id)}>Delete</button>
-                                                    </div>
-                                                </>
-                                            )}
-                                        </li>
+                                        <option key={category.id} value={category.name}>
+                                            {category.name}
+                                        </option>
                                     ))}
-                                </ul>
-                                <button
-                                    className="close-btn"
-                                    onClick={() => {
-                                        setShowCategoryModal(false);
-                                        setEditingCategory(null);
-                                        setNewCategory('');
-                                    }}
-                                >
-                                    Close
-                                </button>
+                                </select>
+                            </label>
+                            <button type="button" onClick={() => setShowCategoryModal(true)}>
+                                Manage Categories
+                            </button>
+                            <button type="submit">Add Food</button>
+                            <button type="button" onClick={() => setShowAddFoodModal(false)}>Cancel</button>
+                        </form>
+                    </div>
+                </>
+            )}
+
+            {showCategoryModal && (
+                <>
+                    <div className="modal-backdrop" onClick={() => setShowCategoryModal(false)} />
+                    <div className="modal" style={{ maxHeight: '80vh', overflowY: 'auto' }}>
+                        <h3>Manage Categories</h3>
+                        <div className="category-modal-content">
+                            <div className="new-category-section">
+                                <label>
+                                    New Category
+                                    <input
+                                        type="text"
+                                        value={newCategory}
+                                        onChange={e => setNewCategory(e.target.value)}
+                                        placeholder="Enter new category"
+                                    />
+                                </label>
+                                <button onClick={addCategory}>Add Category</button>
                             </div>
+                            <ul>
+                                {categories.map(category => (
+                                    <li key={category.id}>
+                                        {editingCategory && editingCategory.id === category.id ? (
+                                            <>
+                                                <input
+                                                    type="text"
+                                                    value={editingCategory.name}
+                                                    onChange={e => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                                                />
+                                                <button className="save-btn" onClick={editCategory}>Save</button>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <span>{category.name}</span>
+                                                <div className="category-actions">
+                                                    <button className="edit-btn" onClick={() => setEditingCategory(category)}>Edit</button>
+                                                    <button className="delete-btn" onClick={() => deleteCategory(category.id)}>Delete</button>
+                                                </div>
+                                            </>
+                                        )}
+                                    </li>
+                                ))}
+                            </ul>
+                            <button
+                                className="close-btn"
+                                onClick={() => {
+                                    setShowCategoryModal(false);
+                                    setEditingCategory(null);
+                                    setNewCategory('');
+                                }}
+                            >
+                                Close
+                            </button>
                         </div>
-                    </>
-                )
-            }
-        </div >
+                    </div>
+                </>
+            )}
+        </div>
     );
 };
 

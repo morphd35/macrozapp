@@ -65,8 +65,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
             const axiosError = error as AxiosError;
             console.error('Error fetching user data:', {
                 status: axiosError.response?.status,
+                statusText: axiosError.response?.statusText,
                 data: axiosError.response?.data,
                 message: axiosError.message,
+                headers: axiosError.response?.headers,
+                config: axiosError.config,
             });
             if (axiosError.response?.status === 401) {
                 console.log('Invalid token, logging out');

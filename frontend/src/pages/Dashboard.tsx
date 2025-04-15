@@ -172,6 +172,8 @@ const Dashboard: React.FC = () => {
         }
     }, [token]);
 
+
+
     const fetchDailySummary = useCallback(async () => {
         if (!userId) return;
         setLoading(true);
@@ -244,12 +246,14 @@ const Dashboard: React.FC = () => {
             setLoading(false);
         }
     }, []);
+    // Memoize the debounced fetchDailySummary to prevent recreation
+    const debouncedFetchDailySummary = useMemo(() => debounce(fetchDailySummary, 300), [fetchDailySummary]);
 
     // Fetch initial data only once when userId and logDate change
     useEffect(() => {
         if (userId) {
             console.log('UserId before fetching data:', userId, 'logDate:', logDate);
-            fetchDailySummary();
+            debouncedFetchDailySummary();
             if (!hasFetchedInitialData) {
                 fetchGoals();
                 fetchFoods();
@@ -261,7 +265,7 @@ const Dashboard: React.FC = () => {
             setGoals([]);
             setDailySummary(null);
         }
-    }, [fetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, logDate]);
+    }, [debouncedFetchDailySummary, fetchGoals, fetchFoods, fetchCategories, userId, logDate]);
 
     // Refetch user data if payment was just verified
     useEffect(() => {
@@ -830,6 +834,8 @@ const Dashboard: React.FC = () => {
     const hasNoEntries = dailySummary && Object.keys(dailySummary).length > 0
         ? Object.values(dailySummary).every(val => val === 0 || val === undefined)
         : true;
+
+
 
     if (!userId && !error) {
         return <div>Loading...</div>;

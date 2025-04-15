@@ -169,7 +169,7 @@ const Dashboard: React.FC = () => {
         try {
             const url = `/api/food_logs/${userId}/${logDate}/${new Date().getTime()}`;
             console.log('Fetching daily summary from:', url);
-            const res = await axiosInstance.get<DailySummary>(url, {});
+            const res = await axiosInstance.post<DailySummary>(url, {});
             console.log('Raw Daily Summary Response:', res.data);
             const parsedSummary = res.data && typeof res.data === 'object' ? res.data : {};
             setDailySummary(parsedSummary);

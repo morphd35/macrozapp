@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 
 console.log('food_logs.js loaded - version 2025-04-15-v12');
+console.log('Updated for version 2025-04-15-v12');
 
 // Get goals for a user
 router.get('/goals/:user_id', async (req, res) => {

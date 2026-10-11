@@ -21,6 +21,9 @@ const AddFood: React.FC = () => {
   const hasLocalAccess = Boolean(user?.isPaid || user?.isPaidOneTime);
   const [foods, setFoods] = useState<Food[]>([]);
   const [query, setQuery] = useState('');
+  const [manualName, setManualName] = useState('');
+  const [manualServing, setManualServing] = useState('1 serving');
+  const [manualMacros, setManualMacros] = useState({ calories: '', protein: '', carbs: '', fats: '' });
   const [sort, setSort] = useState<SortOrder>('az');
   const [selected, setSelected] = useState<Food | null>(null);
   const [servings, setServings] = useState('1');
@@ -53,6 +56,39 @@ const AddFood: React.FC = () => {
   const macro = (name: string) => (selected?.macros || []).find(m => m.macro_name.toLowerCase() === name)?.value || 0;
   const dismissKeyboard = () => { if (document.activeElement instanceof HTMLElement) document.activeElement.blur(); };
 
+  const submitManual = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!Number.isInteger(userId) || userId <= 0 || !manualName.trim() || !manualServing.trim() || saving) return;
+    const values = Object.values(manualMacros);
+    if (values.some(value => value.trim() === '' || !Number.isFinite(Number(value)) || Number(value) < 0)) {
+      setError('Enter valid non-negative values for all four nutrients (use 0 when none).');
+      return;
+    }
+    setSaving(true);
+    setError('');
+    try {
+      // The existing schema requires a food record before a diary entry can reference it.
+      // This does not grant free users access to the premium saved-food lookup UI.
+      const response = await axiosInstance.post<Food>('/api/food_logs/foods', {
+        user_id: userId,
+        name: manualName.trim(),
+        serving_size: manualServing.trim(),
+        category: 'Manual',
+        macros: Object.entries(manualMacros).map(([macro_name, value]) => ({
+          macro_name, value: Number(value), unit: macro_name === 'calories' ? 'kcal' : 'g',
+        })),
+      });
+      await axiosInstance.post('/api/food_logs/food_logs', {
+        user_id: userId, food_id: response.data.id, servings: 1, log_date: logDate,
+      });
+      navigate('/app/dashboard', { replace: true, state: { logDate, foodLogged: true } });
+    } catch {
+      setError('Unable to save and log this food. Please try again.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const submit = async () => {
     if (!selected || !validQuantity || saving) return;
     setSaving(true);
@@ -77,12 +113,7 @@ const AddFood: React.FC = () => {
         <h1>{selected ? 'Log servings' : 'Add Food'}</h1>
         <p>Logging for {logDate}</p>
       </header>
-      {!hasLocalAccess ? (
-        <div className="add-food-panel">
-          <p>Saved-food lookup is available with a one-time purchase or subscription.</p>
-          <button type="button" onClick={() => navigate('/payment-onetime')}>View access options</button>
-        </div>
-      ) : selected ? (
+      {selected ? (
         <div className="add-food-panel">
           <h2>{selected.name}</h2>
           <p>One serving: {selected.serving_size}</p>
@@ -102,6 +133,24 @@ const AddFood: React.FC = () => {
       ) : (
         <>
           <div className="add-food-panel">
+            <h2>Enter Food Manually</h2>
+            <p>Available on every plan. Enter the nutrition for one serving to add it to your diary.</p>
+            <form onSubmit={submitManual} className="add-food-manual-form">
+              <label htmlFor="manual-name">Food name</label>
+              <input id="manual-name" required maxLength={150} value={manualName} onChange={e => setManualName(e.target.value)} placeholder="e.g. Scrambled eggs" />
+              <label htmlFor="manual-serving">Serving size</label>
+              <input id="manual-serving" required value={manualServing} onChange={e => setManualServing(e.target.value)} placeholder="e.g. 2 eggs" />
+              {(['calories', 'protein', 'carbs', 'fats'] as const).map(name => (
+                <React.Fragment key={name}>
+                  <label htmlFor={`manual-${name}`}>{name.charAt(0).toUpperCase() + name.slice(1)} ({name === 'calories' ? 'kcal' : 'g'})</label>
+                  <input id={`manual-${name}`} type="number" inputMode="decimal" min="0" step="any" required value={manualMacros[name]} onChange={e => setManualMacros(prev => ({ ...prev, [name]: e.target.value }))} />
+                </React.Fragment>
+              ))}
+              {error && <p role="alert" className="add-food-error">{error}</p>}
+              <button type="submit" className="add-food-primary" disabled={saving}>{saving ? 'Logging…' : 'Save to Diary'}</button>
+            </form>
+          </div>
+          {hasLocalAccess ? <div className="add-food-panel">
             <h2>My Foods</h2>
             <label htmlFor="add-food-search">Search saved foods</label>
             <input ref={searchRef} id="add-food-search" type="search" enterKeyHint="done" value={query} onChange={e => setQuery(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') dismissKeyboard(); }} placeholder="Search your foods…" />
@@ -123,11 +172,12 @@ const AddFood: React.FC = () => {
               </ul>
             )}
           </div>
-          <div className="add-food-panel add-food-secondary">
+          </div> : <div className="add-food-panel add-food-secondary"><p>Reuse saved foods with a subscription or one-time purchase.</p><button type="button" onClick={() => navigate('/payment-onetime')}>View access options</button></div>}
+          {hasLocalAccess && <div className="add-food-panel add-food-secondary">
             <p>Need a food that isn't saved yet?</p>
             <button type="button" onClick={() => navigate('/app/food-maintenance')}>Manage or add saved foods</button>
             {user?.isPaid && <p>Edamam lookup remains available in the existing dashboard flow while we migrate it.</p>}
-          </div>
+          </div>}
         </>
       )}
     </section>

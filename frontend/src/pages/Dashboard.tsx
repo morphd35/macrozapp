@@ -89,7 +89,7 @@ const Dashboard: React.FC = () => {
     // Restore the diary date after returning from the mobile-first Add Food screen.
     useEffect(() => {
         const state = location.state as { logDate?: string; foodLogged?: boolean } | null;
-        if (state?.logDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(state.logDate)) {
+        if (state?.logDate && /^\d{4}-\d{2}-\d{2}$/.test(state.logDate)) {
             setLogDate(state.logDate);
         }
         if (state?.foodLogged) {

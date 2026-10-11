@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Route, Routes, NavLink, Navigate } from 'react
 import { AuthProvider } from './context/AuthContext'; // Adjust the path as needed
 import NavBar from './NavBar';
 import Dashboard from './pages/Dashboard';
+import AddFood from './pages/AddFood';
 import Goals from './pages/Goals';
 import FoodMaintenance from './pages/FoodMaintenance';
 import Logs from './pages/Logs';
@@ -27,6 +28,7 @@ const AppLayout = () => (
     <main>
       <Routes>
         <Route path="dashboard" element={<Dashboard />} />
+        <Route path="add-food" element={<AddFood />} />
         <Route path="goals" element={<Goals />} />
         <Route path="food-maintenance" element={<FoodMaintenance />} />
         <Route path="logs" element={<Logs />} />

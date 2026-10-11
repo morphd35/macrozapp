@@ -10,11 +10,13 @@ if (process.env.NODE_ENV === 'development') {
     return typeof message === 'string' && message.includes('ResizeObserver loop completed with undelivered notifications');
   };
 
+  // Capture before the development error overlay's listener sees this benign browser notification.
   window.addEventListener('error', (event) => {
     if (isResizeObserverError(event.message)) {
       event.preventDefault();
+      event.stopImmediatePropagation();
     }
-  });
+  }, true);
 
   window.addEventListener('unhandledrejection', (event) => {
     if (isResizeObserverError((event.reason as Error | string)?.toString())) {

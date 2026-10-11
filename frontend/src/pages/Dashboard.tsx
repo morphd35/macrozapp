@@ -86,6 +86,17 @@ const Dashboard: React.FC = () => {
         const day = String(today.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
     });
+    // Restore the diary date after returning from the mobile-first Add Food screen.
+    useEffect(() => {
+        const state = location.state as { logDate?: string; foodLogged?: boolean } | null;
+        if (state?.logDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(state.logDate)) {
+            setLogDate(state.logDate);
+        }
+        if (state?.foodLogged) {
+            toast.success("Food logged successfully!");
+            navigate(location.pathname, { replace: true, state: { logDate: state.logDate } });
+        }
+    }, [location.state, location.pathname, navigate]);
     const [success, setSuccess] = useState<string>('');
     const [loading, setLoading] = useState<boolean>(false);
     const [showLogModal, setShowLogModal] = useState(false);
@@ -876,11 +887,12 @@ const Dashboard: React.FC = () => {
                             type="text"
                             value={dashboardSearchQuery}
                             onChange={(e) => setDashboardSearchQuery(e.target.value)}
-                            onFocus={() => setShowLogModal(true)}
+                            onFocus={() => navigate("/app/add-food", { state: { logDate } })}
                             placeholder="Search for a food..."
                             style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
                         />
-                        <SearchIcon style={{ cursor: 'pointer' }} />
+                        <button type="button" onClick={() => navigate("/app/add-food", { state: { logDate } })}>Add Food</button>
+                        {stableUser?.isPaid && <button type="button" onClick={() => setShowLogModal(true)}>Edamam lookup</button>}
                     </div>
                     <div>
                         <button className="button-with-icon" onClick={() => setShowLogWeightModal(true)}>

@@ -171,7 +171,6 @@ const AddFood: React.FC = () => {
                 ))}
               </ul>
             )}
-          </div>
           </div> : <div className="add-food-panel add-food-secondary"><p>Reuse saved foods with a subscription or one-time purchase.</p><button type="button" onClick={() => navigate('/payment-onetime')}>View access options</button></div>}
           {hasLocalAccess && <div className="add-food-panel add-food-secondary">
             <p>Need a food that isn't saved yet?</p>

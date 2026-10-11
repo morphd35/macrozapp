@@ -3,6 +3,19 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "dev": "concurrently \"npm:dev:backend\" \"npm:dev:frontend\"",
+    "dev:backend": "cross-env PORT=4000 node backend/index.js",
+    "dev:frontend": "cross-env PORT=3001 npm --prefix frontend start",
+    "migrate": "npx knex migrate:latest --knexfile backend/knexfile.js",
+    "migrate:sync": "node scripts/sync-migrations.js",
+    "seed": "node scripts/seed-local.js",
+    "setup:local": "node scripts/setup-local.js",
+    "setup:local:seed": "node scripts/setup-local.js --seed",
+    "setup:local:repair": "node scripts/setup-local.js --repair-goals",
+    "setup:local:sync": "node scripts/setup-local.js --sync-migrations",
+    "repair:goals": "node scripts/repair-goals.js",
+    "users:local": "node scripts/list-local-users.js",
+    "ensure:goals": "node scripts/ensure-goals-table.js",
     "start": "node backend/index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -12,7 +25,7 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "description": "",
+  "description": "Macrozapp nutrition tracking backend and development tools",
   "dependencies": {
     "axios": "^1.8.4",
     "bcrypt": "^5.1.1",
@@ -25,5 +38,12 @@
     "nodemailer": "^6.10.0",
     "pg": "^8.13.3",
     "stripe": "^17.7.0"
+  },
+  "directories": {
+    "doc": "docs"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3"
   }
 }

@@ -225,6 +225,33 @@ router.put('/foods/:id', async (req, res) => {
 
         console.log('Updated food macros:', macroEntries);
 
+        // Recalculate recent logs for this food so totals reflect the latest macros
+        const logsToUpdate = await db('food_logs')
+            .where({ food_id: parsedId, user_id: parsedUserId })
+            .andWhere('log_date', '>=', db.raw("CURRENT_DATE - INTERVAL '7 days'"))
+            .select('id', 'servings');
+
+        if (logsToUpdate.length) {
+            const logIds = logsToUpdate.map(log => log.id);
+            await db('food_log_macros').whereIn('food_log_id', logIds).del();
+
+            const recalculatedRows = [];
+            logsToUpdate.forEach(log => {
+                macroEntries.forEach(macro => {
+                    recalculatedRows.push({
+                        food_log_id: log.id,
+                        macro_name: macro.macro_name.toLowerCase(),
+                        total_value: Number(macro.value) * Number(log.servings),
+                        unit: macro.unit,
+                    });
+                });
+            });
+
+            if (recalculatedRows.length) {
+                await db('food_log_macros').insert(recalculatedRows);
+            }
+        }
+
         const updatedMacros = await db('food_macros').where('food_id', parsedId);
         res.json({ ...updatedFood, macros: updatedMacros });
     } catch (err) {

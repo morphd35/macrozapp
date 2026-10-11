@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const knex = require('knex');
+const path = require('path');
 const app = express();
 
 
@@ -71,7 +72,7 @@ app.use((req, res, next) => {
     next();
 });
 
-require('dotenv').config();
+require('dotenv').config({ path: path.join(__dirname, '.env') });
 // console.log('JWT_SECRET:', process.env.JWT_SECRET);
 
 const isProduction = process.env.NODE_ENV === 'production';

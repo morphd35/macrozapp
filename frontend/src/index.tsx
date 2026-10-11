@@ -5,6 +5,24 @@ import App from './App';
 import reportWebVitals from './reportWebVitals';
 import * as serviceWorkerRegistration from './serviceWorkerRegistration';
 
+if (process.env.NODE_ENV === 'development') {
+  const isResizeObserverError = (message: unknown) => {
+    return typeof message === 'string' && message.includes('ResizeObserver loop completed with undelivered notifications');
+  };
+
+  window.addEventListener('error', (event) => {
+    if (isResizeObserverError(event.message)) {
+      event.preventDefault();
+    }
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    if (isResizeObserverError((event.reason as Error | string)?.toString())) {
+      event.preventDefault();
+    }
+  });
+}
+
 
 const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement);
 root.render(

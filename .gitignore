@@ -5,3 +5,5 @@ build/
 backend/*.sqlite
 .env.development
 .env.production
+# Local environment backups
+backend/.env_original

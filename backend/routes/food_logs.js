@@ -438,4 +438,72 @@ router.post('/weight_logs', async (req, res) => {
     }
 });
 
+// Recalculate food_log_macros for a user/date (optionally for a single food_id)
+router.post('/recalc', async (req, res) => {
+    const { user_id, date, food_id } = req.body;
+    const parsedUserId = parseInt(user_id);
+    const parsedFoodId = food_id !== undefined ? parseInt(food_id) : null;
+
+    if (isNaN(parsedUserId) || !date) {
+        return res.status(400).json({ error: 'user_id and date are required' });
+    }
+
+    if (food_id !== undefined && isNaN(parsedFoodId)) {
+        return res.status(400).json({ error: 'food_id must be a valid integer' });
+    }
+
+    try {
+        const db = req.app.get('db');
+        const logsQuery = db('food_logs')
+            .where('user_id', parsedUserId)
+            .andWhere(db.raw('DATE(food_logs.log_date) = ?', [date]));
+
+        if (parsedFoodId !== null) {
+            logsQuery.andWhere('food_id', parsedFoodId);
+        }
+
+        const logs = await logsQuery.select('id', 'food_id', 'servings');
+        if (!logs.length) {
+            return res.json({ success: true, updatedLogs: 0 });
+        }
+
+        const logIds = logs.map(log => log.id);
+        await db('food_log_macros').whereIn('food_log_id', logIds).del();
+
+        const foodIds = [...new Set(logs.map(log => log.food_id))];
+        const macros = await db('food_macros')
+            .whereIn('food_id', foodIds)
+            .select('food_id', 'macro_name', 'value', 'unit');
+
+        const macrosByFood = new Map();
+        macros.forEach(macro => {
+            const list = macrosByFood.get(macro.food_id) || [];
+            list.push(macro);
+            macrosByFood.set(macro.food_id, list);
+        });
+
+        const rows = [];
+        logs.forEach(log => {
+            const foodMacros = macrosByFood.get(log.food_id) || [];
+            foodMacros.forEach(macro => {
+                rows.push({
+                    food_log_id: log.id,
+                    macro_name: macro.macro_name.toLowerCase(),
+                    total_value: macro.value * log.servings,
+                    unit: macro.unit,
+                });
+            });
+        });
+
+        if (rows.length) {
+            await db('food_log_macros').insert(rows);
+        }
+
+        res.json({ success: true, updatedLogs: logs.length });
+    } catch (err) {
+        console.error('Error in POST /recalc:', err.message, err.stack);
+        res.status(500).json({ error: 'Failed to recalculate food log macros' });
+    }
+});
+
 module.exports = router;
